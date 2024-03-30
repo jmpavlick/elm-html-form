@@ -1,0 +1,17 @@
+{
+  "name": "module-pattern",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "elm-go src/Main.elm --open --pushstate -- --output=main.js --debug"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "elm": "0.19.1-6",
+    "elm-format": "^0.8.7",
+    "elm-go": "^5.0.20",
+    "elm-test": "0.19.1-revision12"
+  }
+}

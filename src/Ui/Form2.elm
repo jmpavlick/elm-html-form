@@ -71,7 +71,7 @@ type Init editor record fieldset model msg
         , onSubmit : record -> msg
         , fields : Dict Int (model -> Html msg)
         , initModel : Model editor -> Model editor
-        , fieldset : () -> fieldset
+        , fieldset : model -> fieldset
         }
 
 
@@ -103,8 +103,8 @@ withInput :
     , initialValue : Maybe String
     , attrs : List (Html.Attribute msg)
     }
-    -> Init editor record ((model -> Html msg) -> fieldset) model msg
-    -> Init editor record fieldset model msg
+    -> Init editor record (Html msg -> fieldset) model msg
+    -> Init editor record (model -> fieldset) model msg
 withInput { wrap, initialValue, attrs } (Init init_) =
     let
         internals : model -> Internals editor
@@ -154,7 +154,8 @@ withInput { wrap, initialValue, attrs } (Init init_) =
         , fieldset =
             let
                 nx =
-                    init_.fieldset () <| field
+                    \model ->
+                        init_.fieldset model <| field model
             in
             always nx
         , toModel = init_.toModel
@@ -169,7 +170,7 @@ type alias Module editor model fieldset msg =
     { init : ( Model editor -> model, Cmd msg ) -> ( model, Cmd msg )
     , elements : { fields : model -> List (Html msg), submitMsg : msg }
     , update : Msg editor -> model -> ( model, Cmd msg )
-    , fieldset : fieldset
+    , fieldset : model -> fieldset
     }
 
 
@@ -203,5 +204,5 @@ build (Init init_) =
                 |> Tuple.mapFirst
                     (init_.toModel model)
     , fieldset =
-        init_.fieldset ()
+        init_.fieldset
     }

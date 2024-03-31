@@ -73,3 +73,46 @@ view model =
        }
        -> Program flags model msg
 -}
+
+
+type alias Msg_ =
+    ( Model -> Model, Cmd (Model -> Model) )
+
+
+update_ : Msg_ -> Model -> ( Model, Cmd Msg_ )
+update_ ( msg, cmd ) model =
+    ( msg model
+    , Cmd.map (\c -> ( c, Cmd.none )) cmd
+    )
+
+
+mapMsg : Msg -> Msg_
+mapMsg classic =
+    ( \model ->
+        update classic model
+            |> Tuple.first
+    , Cmd.none
+    )
+
+
+withoutIo : Msg -> (Model -> Model)
+withoutIo msg =
+    \model ->
+        update msg model
+            |> Tuple.first
+
+
+mapMsg3 : Msg -> (Model -> ( Model, Cmd (Model -> Model) ))
+mapMsg3 msg =
+    \model ->
+        update msg model
+            |> (\( updatedModel, cmdMsg ) ->
+                    ( updatedModel
+                    , Cmd.map withoutIo cmdMsg
+                    )
+               )
+
+
+etadpu : Msg -> ( Msg_, Cmd Msg_ )
+etadpu classic =
+    Debug.todo ""

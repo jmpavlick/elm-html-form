@@ -152,7 +152,7 @@ withInput { wrap, initialValue, attrs } (Init init_) =
 
 type alias Module editor model msg =
     { init : ( Model editor -> model, Cmd msg ) -> ( model, Cmd msg )
-    , elements : model -> { fields : List (Html msg), submitMsg : msg }
+    , elements : { fields : model -> List (Html msg), submitMsg : msg }
     , update : Msg editor -> model -> ( model, Cmd msg )
     }
 
@@ -169,12 +169,12 @@ build (Init init_) =
             , cmdMsg
             )
     , elements =
-        \model ->
-            { fields =
+        { fields =
+            \model ->
                 Dict.values init_.fields
                     |> List.map ((|>) model)
-            , submitMsg = Debug.todo ""
-            }
+        , submitMsg = init_.toMsg UserClickedSubmit
+        }
     , update =
         \msg model ->
             update

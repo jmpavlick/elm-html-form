@@ -1,5 +1,7 @@
 module Signup exposing (..)
 
+import Ui.Form
+
 
 type Editor
     = Name (Maybe String)
@@ -34,3 +36,30 @@ toRecord editors =
         }
         editors
         |> (\e -> Maybe.map3 Record e.name e.age e.emailAddress)
+
+
+form : { toMsg : Ui.Form.Msg Editor -> msg, onSubmit : Record -> msg } -> Ui.Form.Module Editor { model | signupForm : Ui.Form.Model Editor } msg
+form { toMsg, onSubmit } =
+    Ui.Form.init
+        { toModel = \m formModel -> { m | signupForm = formModel }
+        , fromModel = .signupForm
+        , toMsg = toMsg
+        , toRecord = toRecord
+        , onSubmit = onSubmit
+        }
+        |> Ui.Form.withInput
+            { wrap = Name
+            , initialValue = Nothing
+            , attrs = []
+            }
+        |> Ui.Form.withInput
+            { wrap = Maybe.andThen String.toInt >> Age
+            , initialValue = Nothing
+            , attrs = []
+            }
+        |> Ui.Form.withInput
+            { wrap = EmailAddress
+            , initialValue = Nothing
+            , attrs = []
+            }
+        |> Ui.Form.build

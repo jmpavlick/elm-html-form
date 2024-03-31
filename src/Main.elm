@@ -5,6 +5,7 @@ import Html exposing (Html)
 import Html.Events
 import Signup
 import Ui.Form
+import Ui.Form2
 
 
 main : Program () Model Msg

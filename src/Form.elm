@@ -106,12 +106,39 @@ init fieldset { toModel, fromModel, toMsg, toRecord, onSubmit } =
         }
 
 
-type Field value msg
+type Field value editor msg
     = Field
         { initialValue : Maybe value
         , element : List (Html.Attribute msg) -> List (Html msg) -> Html msg
-        , toValueAttr : value -> Html.Attribute msg
-        , withOnInput : List (Html.Attribute msg) -> List (Html.Attribute msg)
+        , withValueAttr :
+            { wrap : Maybe value -> editor
+            , initialValue : Maybe value
+            }
+            -> editor
+            -> List (Html.Attribute msg)
+            -> List (Html.Attribute msg)
+        , withOnInput : { wrap : Maybe value -> editor, index : Int, toMsg : Msg editor -> msg } -> List (Html.Attribute msg) -> List (Html.Attribute msg)
+        }
+
+
+input : Field String editor msg
+input =
+    Field
+        { initialValue = Nothing
+        , element = Html.input
+        , withValueAttr =
+            \{ wrap, initialValue } editor attrs ->
+                (if wrap initialValue == editor then
+                    initialValue
+
+                 else
+                    Nothing
+                )
+                    |> Maybe.map (\v -> Attr.value v :: attrs)
+                    |> Maybe.withDefault attrs
+        , withOnInput =
+            \{ wrap, index, toMsg } ->
+                (::) (Html.Events.onInput (Just >> wrap >> UserUpdatedField index >> toMsg))
         }
 
 
@@ -220,7 +247,7 @@ build (Init init_) =
 
 withField :
     (Maybe value -> editor)
-    -> Field value msg
+    -> Field value editor msg
     -> Init editor record ((List (Html.Attribute msg) -> Html msg) -> fieldset) model msg
     -> Init editor record fieldset model msg
 withField wrap (Field field) (Init init_) =
@@ -235,25 +262,21 @@ withField wrap (Field field) (Init init_) =
 
         withValueAttr : model -> List (Html.Attribute msg) -> List (Html.Attribute msg)
         withValueAttr model attrs_ =
-            Maybe.andThen
+            Maybe.map
                 (\value ->
-                    if value == initEditor then
-                        --Maybe.map (\v -> Attr.value v :: attrs_) field.initialValue
-                        Maybe.map (\v -> field.toValueAttr v :: attrs_) field.initialValue
-
-                    else
-                        Nothing
+                    field.withValueAttr { wrap = wrap, initialValue = field.initialValue }
+                        value
+                        attrs_
                 )
                 ((internals model).editors |> Dict.get init_.fieldCount)
                 |> Maybe.withDefault attrs_
 
         withEvents : List (Html.Attribute msg) -> List (Html.Attribute msg)
         withEvents attrs_ =
-            --Html.Events.onInput (Just >> wrap >> UserUpdatedField init_.fieldCount >> init_.toMsg) ::
             Html.Events.onFocus (UserFocusedField init_.fieldCount |> init_.toMsg)
                 :: Html.Events.onBlur (init_.toMsg UserBlurredField)
                 :: attrs_
-                |> field.withOnInput
+                |> field.withOnInput { wrap = wrap, index = init_.fieldCount, toMsg = init_.toMsg }
 
         element : model -> List (Html.Attribute msg) -> Html msg
         element =

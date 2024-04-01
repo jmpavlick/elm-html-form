@@ -208,6 +208,7 @@ withField wrap (Field field) (Init init_) =
                         value
                         attrs_
                 )
+                -- syntax crimes
                 ((internals model).editors |> Dict.get init_.fieldCount)
                 |> Maybe.withDefault attrs_
 
@@ -219,19 +220,10 @@ withField wrap (Field field) (Init init_) =
                 |> field.withOnInput { wrap = wrap, index = init_.fieldCount, toMsg = init_.toMsg }
 
         element : model -> List (Html.Attribute msg) -> Html msg
-        element =
-            \model attrs ->
-                field.element
-                    (attrs |> withValueAttr model |> withEvents)
-                    []
-
-        (Fieldset oldFs) =
-            init_.fieldset
-
-        newFs =
-            \model ->
-                oldFs model <|
-                    element model
+        element model attrs =
+            field.element
+                (attrs |> withValueAttr model |> withEvents)
+                []
     in
     Init
         { fieldCount = init_.fieldCount + 1
@@ -243,5 +235,5 @@ withField wrap (Field field) (Init init_) =
         , toMsg = init_.toMsg
         , toRecord = init_.toRecord
         , onSubmit = init_.onSubmit
-        , fieldset = Fieldset newFs
+        , fieldset = Fieldset (\model -> (\(Fieldset fs) -> fs model (element model)) init_.fieldset)
         }

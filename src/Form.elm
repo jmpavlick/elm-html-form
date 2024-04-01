@@ -106,6 +106,15 @@ init fieldset { toModel, fromModel, toMsg, toRecord, onSubmit } =
         }
 
 
+type Field value msg
+    = Field
+        { initialValue : Maybe value
+        , element : List (Html.Attribute msg) -> List (Html msg) -> Html msg
+        , toValueAttr : value -> Html.Attribute msg
+        , withOnInput : List (Html.Attribute msg) -> List (Html.Attribute msg)
+        }
+
+
 withInput :
     { wrap : Maybe String -> editor
     , initialValue : Maybe String
@@ -207,3 +216,69 @@ build (Init init_) =
         \model ->
             (\(Fieldset fs) -> fs model) init_.fieldset
     }
+
+
+withField :
+    (Maybe value -> editor)
+    -> Field value msg
+    -> Init editor record ((List (Html.Attribute msg) -> Html msg) -> fieldset) model msg
+    -> Init editor record fieldset model msg
+withField wrap (Field field) (Init init_) =
+    let
+        internals : model -> Internals editor
+        internals =
+            init_.fromModel >> (\(Model m) -> m)
+
+        initEditor : editor
+        initEditor =
+            wrap field.initialValue
+
+        withValueAttr : model -> List (Html.Attribute msg) -> List (Html.Attribute msg)
+        withValueAttr model attrs_ =
+            Maybe.andThen
+                (\value ->
+                    if value == initEditor then
+                        --Maybe.map (\v -> Attr.value v :: attrs_) field.initialValue
+                        Maybe.map (\v -> field.toValueAttr v :: attrs_) field.initialValue
+
+                    else
+                        Nothing
+                )
+                ((internals model).editors |> Dict.get init_.fieldCount)
+                |> Maybe.withDefault attrs_
+
+        withEvents : List (Html.Attribute msg) -> List (Html.Attribute msg)
+        withEvents attrs_ =
+            --Html.Events.onInput (Just >> wrap >> UserUpdatedField init_.fieldCount >> init_.toMsg) ::
+            Html.Events.onFocus (UserFocusedField init_.fieldCount |> init_.toMsg)
+                :: Html.Events.onBlur (init_.toMsg UserBlurredField)
+                :: attrs_
+                |> field.withOnInput
+
+        element : model -> List (Html.Attribute msg) -> Html msg
+        element =
+            \model attrs ->
+                field.element
+                    (attrs |> withValueAttr model |> withEvents)
+                    []
+
+        (Fieldset oldFs) =
+            init_.fieldset
+
+        newFs =
+            \model ->
+                oldFs model <|
+                    element model
+    in
+    Init
+        { fieldCount = init_.fieldCount + 1
+        , initModel =
+            init_.initModel
+                >> (\(Model m) -> Model { m | editors = Dict.insert init_.fieldCount initEditor m.editors })
+        , toModel = init_.toModel
+        , fromModel = init_.fromModel
+        , toMsg = init_.toMsg
+        , toRecord = init_.toRecord
+        , onSubmit = init_.onSubmit
+        , fieldset = Fieldset newFs
+        }

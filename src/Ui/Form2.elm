@@ -107,7 +107,7 @@ withInput :
     , initialValue : Maybe String
     , attrs : List (Html.Attribute msg)
     }
-    -> Init editor record fieldset model msg
+    -> Init editor record (Html msg -> fieldset) model msg
     -> Init editor record fieldset model msg
 withInput { wrap, initialValue, attrs } (Init init_) =
     let
@@ -143,18 +143,32 @@ withInput { wrap, initialValue, attrs } (Init init_) =
                 :: Html.Events.onBlur (init_.toMsg UserBlurredField)
                 :: attrs_
 
+        field : model -> Html msg
         field =
             \model ->
                 Html.input
                     (attrs |> withValueAttr model |> withEvents)
                     []
+
+        (Fieldset oldFs) =
+            init_.fieldset
+
+        newFs =
+            \model ->
+                oldFs model <|
+                    field model
     in
     Init
-        { init_
-            | fields = Dict.insert nextIndex field init_.fields
-            , initModel =
-                init_.initModel
-                    >> (\(Model m) -> Model { m | editors = Dict.insert nextIndex initEditor m.editors })
+        { fields = Dict.insert nextIndex field init_.fields
+        , initModel =
+            init_.initModel
+                >> (\(Model m) -> Model { m | editors = Dict.insert nextIndex initEditor m.editors })
+        , toModel = init_.toModel
+        , fromModel = init_.fromModel
+        , toMsg = init_.toMsg
+        , toRecord = init_.toRecord
+        , onSubmit = init_.onSubmit
+        , fieldset = Fieldset newFs
         }
 
 

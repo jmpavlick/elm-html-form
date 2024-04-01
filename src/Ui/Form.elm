@@ -185,10 +185,11 @@ build (Init init_) =
     { init =
         \( toModel, cmdMsg ) ->
             ( toModel <|
-                Model
-                    { editors = Dict.empty
-                    , focusedIndex = Nothing
-                    }
+                init_.initModel <|
+                    Model
+                        { editors = Dict.empty
+                        , focusedIndex = Nothing
+                        }
             , cmdMsg
             )
     , elements =

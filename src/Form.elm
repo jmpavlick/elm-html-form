@@ -77,7 +77,7 @@ type Init editor record fieldset model msg
         , toMsg : Msg editor -> msg
         , toRecord : List editor -> Maybe record
         , onSubmit : record -> msg
-        , fieldCount : Int
+        , nextIndex : Int
         , initModel : Model editor -> Model editor
         , fieldset : Fieldset model fieldset
         }
@@ -99,7 +99,7 @@ init fieldset { toModel, fromModel, toMsg, toRecord, onSubmit } =
         , fromModel = fromModel
         , toMsg = toMsg
         , toRecord = toRecord
-        , fieldCount = 0
+        , nextIndex = 0
         , initModel = identity
         , onSubmit = onSubmit
         , fieldset = Fieldset (always fieldset)
@@ -209,15 +209,15 @@ withField wrap (Field field) (Init init_) =
                         attrs_
                 )
                 -- syntax crimes
-                ((internals model).editors |> Dict.get init_.fieldCount)
+                ((internals model).editors |> Dict.get init_.nextIndex)
                 |> Maybe.withDefault attrs_
 
         withEvents : List (Html.Attribute msg) -> List (Html.Attribute msg)
         withEvents attrs_ =
-            Html.Events.onFocus (UserFocusedField init_.fieldCount |> init_.toMsg)
+            Html.Events.onFocus (UserFocusedField init_.nextIndex |> init_.toMsg)
                 :: Html.Events.onBlur (init_.toMsg UserBlurredField)
                 :: attrs_
-                |> field.withOnInput { wrap = wrap, index = init_.fieldCount, toMsg = init_.toMsg }
+                |> field.withOnInput { wrap = wrap, index = init_.nextIndex, toMsg = init_.toMsg }
 
         element : model -> List (Html.Attribute msg) -> Html msg
         element model attrs =
@@ -226,10 +226,10 @@ withField wrap (Field field) (Init init_) =
                 []
     in
     Init
-        { fieldCount = init_.fieldCount + 1
+        { nextIndex = init_.nextIndex + 1
         , initModel =
             init_.initModel
-                >> (\(Model m) -> Model { m | editors = Dict.insert init_.fieldCount initEditor m.editors })
+                >> (\(Model m) -> Model { m | editors = Dict.insert init_.nextIndex initEditor m.editors })
         , toModel = init_.toModel
         , fromModel = init_.fromModel
         , toMsg = init_.toMsg

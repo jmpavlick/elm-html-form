@@ -1,4 +1,4 @@
-module Ui.Form exposing (..)
+module Form exposing (..)
 
 import Dict exposing (Dict)
 import Html exposing (Html)

@@ -1,11 +1,11 @@
 module Main exposing (..)
 
 import Browser
+import Form
 import Html exposing (Html)
 import Html.Attributes as Attr
 import Html.Events
 import Signup
-import Ui.Form
 
 
 main : Program () Model Msg
@@ -19,15 +19,15 @@ main =
 
 
 type alias Model =
-    { signupForm : Ui.Form.Model Signup.Editor }
+    { signupForm : Form.Model Signup.Editor }
 
 
 type Msg
-    = GotSignupMsg (Ui.Form.Msg Signup.Editor)
+    = GotSignupMsg (Form.Msg Signup.Editor)
     | GotSignupOnSubmit Signup.Record
 
 
-signupModule : Ui.Form.Module Signup.Editor Model (Signup.Fieldset Msg) Msg
+signupModule : Form.Module Signup.Editor Model (Signup.Fieldset Msg) Msg
 signupModule =
     Signup.form { toMsg = GotSignupMsg, onSubmit = GotSignupOnSubmit }
 

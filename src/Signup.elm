@@ -1,7 +1,7 @@
 module Signup exposing (..)
 
+import Form
 import Html exposing (Html)
-import Ui.Form
 
 
 type Editor
@@ -18,9 +18,9 @@ type alias Record =
 
 
 type alias Fieldset msg =
-    { name : Ui.Form.FieldEl msg
-    , age : Ui.Form.FieldEl msg
-    , emailAddress : Ui.Form.FieldEl msg
+    { name : Form.FieldEl msg
+    , age : Form.FieldEl msg
+    , emailAddress : Form.FieldEl msg
     }
 
 
@@ -47,26 +47,26 @@ toRecord editors =
 
 
 form :
-    { toMsg : Ui.Form.Msg Editor -> msg, onSubmit : Record -> msg }
-    -> Ui.Form.Module Editor { model | signupForm : Ui.Form.Model Editor } (Fieldset msg) msg
+    { toMsg : Form.Msg Editor -> msg, onSubmit : Record -> msg }
+    -> Form.Module Editor { model | signupForm : Form.Model Editor } (Fieldset msg) msg
 form { toMsg, onSubmit } =
-    Ui.Form.init Fieldset
+    Form.init Fieldset
         { toModel = \m formModel -> { m | signupForm = formModel }
         , fromModel = .signupForm
         , toMsg = toMsg
         , toRecord = toRecord
         , onSubmit = onSubmit
         }
-        |> Ui.Form.withInput
+        |> Form.withInput
             { wrap = Name
             , initialValue = Nothing
             }
-        |> Ui.Form.withInput
+        |> Form.withInput
             { wrap = Maybe.andThen String.toInt >> Age
             , initialValue = Nothing
             }
-        |> Ui.Form.withInput
+        |> Form.withInput
             { wrap = EmailAddress
             , initialValue = Nothing
             }
-        |> Ui.Form.build
+        |> Form.build

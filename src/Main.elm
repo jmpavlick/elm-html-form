@@ -3,8 +3,8 @@ module Main exposing (..)
 import Browser
 import Html exposing (Html)
 import Html.Events
-import Signup2 as Signup
-import Ui.Form2
+import Signup
+import Ui.Form
 
 
 main : Program () Model Msg
@@ -18,15 +18,15 @@ main =
 
 
 type alias Model =
-    { signupForm : Ui.Form2.Model Signup.Editor }
+    { signupForm : Ui.Form.Model Signup.Editor }
 
 
 type Msg
-    = GotSignupMsg (Ui.Form2.Msg Signup.Editor)
+    = GotSignupMsg (Ui.Form.Msg Signup.Editor)
     | GotSignupOnSubmit Signup.Record
 
 
-signupModule : Ui.Form2.Module Signup.Editor Model (Signup.Fieldset Msg) Msg
+signupModule : Ui.Form.Module Signup.Editor Model (Signup.Fieldset Msg) Msg
 signupModule =
     Signup.form { toMsg = GotSignupMsg, onSubmit = GotSignupOnSubmit }
 

@@ -1,5 +1,6 @@
 module Signup exposing (..)
 
+import Html exposing (Html)
 import Ui.Form
 
 
@@ -13,6 +14,13 @@ type alias Record =
     { name : String
     , age : Int
     , emailAddress : String
+    }
+
+
+type alias Fieldset msg =
+    { name : Html msg
+    , age : Html msg
+    , emailAddress : Html msg
     }
 
 
@@ -38,9 +46,9 @@ toRecord editors =
         |> (\e -> Maybe.map3 Record e.name e.age e.emailAddress)
 
 
-form : { toMsg : Ui.Form.Msg Editor -> msg, onSubmit : Record -> msg } -> Ui.Form.Module Editor { model | signupForm : Ui.Form.Model Editor } msg
+form : { toMsg : Ui.Form.Msg Editor -> msg, onSubmit : Record -> msg } -> Ui.Form.Module Editor { model | signupForm : Ui.Form.Model Editor } (Fieldset msg) msg
 form { toMsg, onSubmit } =
-    Ui.Form.init
+    Ui.Form.init Fieldset
         { toModel = \m formModel -> { m | signupForm = formModel }
         , fromModel = .signupForm
         , toMsg = toMsg

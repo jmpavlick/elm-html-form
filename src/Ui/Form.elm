@@ -24,6 +24,10 @@ type Msg editor
     | UserClickedSubmit
 
 
+type Fieldset model fieldset
+    = Fieldset (model -> fieldset)
+
+
 update :
     { onSubmit : record -> msg, toMsg : Msg editor -> msg, toRecord : List editor -> Maybe record }
     -> Msg editor
@@ -62,7 +66,7 @@ update { onSubmit, toMsg, toRecord } msg (Model model) =
             )
 
 
-type Init editor record model msg
+type Init editor record fieldset model msg
     = Init
         { toModel : model -> Model editor -> model
         , fromModel : model -> Model editor
@@ -71,18 +75,21 @@ type Init editor record model msg
         , onSubmit : record -> msg
         , fields : Dict Int (model -> Html msg)
         , initModel : Model editor -> Model editor
+        , fieldset : Fieldset model fieldset
         }
 
 
 init :
-    { toModel : model -> Model editor -> model
-    , fromModel : model -> Model editor
-    , toMsg : Msg editor -> msg
-    , toRecord : List editor -> Maybe record
-    , onSubmit : record -> msg
-    }
-    -> Init editor record model msg
-init { toModel, fromModel, toMsg, toRecord, onSubmit } =
+    fieldset
+    ->
+        { toModel : model -> Model editor -> model
+        , fromModel : model -> Model editor
+        , toMsg : Msg editor -> msg
+        , toRecord : List editor -> Maybe record
+        , onSubmit : record -> msg
+        }
+    -> Init editor record fieldset model msg
+init fieldset { toModel, fromModel, toMsg, toRecord, onSubmit } =
     Init
         { toModel = toModel
         , fromModel = fromModel
@@ -91,6 +98,7 @@ init { toModel, fromModel, toMsg, toRecord, onSubmit } =
         , fields = Dict.empty
         , initModel = identity
         , onSubmit = onSubmit
+        , fieldset = Fieldset (always fieldset)
         }
 
 
@@ -99,8 +107,8 @@ withInput :
     , initialValue : Maybe String
     , attrs : List (Html.Attribute msg)
     }
-    -> Init editor record model msg
-    -> Init editor record model msg
+    -> Init editor record (Html msg -> fieldset) model msg
+    -> Init editor record fieldset model msg
 withInput { wrap, initialValue, attrs } (Init init_) =
     let
         internals : model -> Internals editor
@@ -135,29 +143,44 @@ withInput { wrap, initialValue, attrs } (Init init_) =
                 :: Html.Events.onBlur (init_.toMsg UserBlurredField)
                 :: attrs_
 
+        field : model -> Html msg
         field =
             \model ->
                 Html.input
                     (attrs |> withValueAttr model |> withEvents)
                     []
+
+        (Fieldset oldFs) =
+            init_.fieldset
+
+        newFs =
+            \model ->
+                oldFs model <|
+                    field model
     in
     Init
-        { init_
-            | fields = Dict.insert nextIndex field init_.fields
-            , initModel =
-                init_.initModel
-                    >> (\(Model m) -> Model { m | editors = Dict.insert nextIndex initEditor m.editors })
+        { fields = Dict.insert nextIndex field init_.fields
+        , initModel =
+            init_.initModel
+                >> (\(Model m) -> Model { m | editors = Dict.insert nextIndex initEditor m.editors })
+        , toModel = init_.toModel
+        , fromModel = init_.fromModel
+        , toMsg = init_.toMsg
+        , toRecord = init_.toRecord
+        , onSubmit = init_.onSubmit
+        , fieldset = Fieldset newFs
         }
 
 
-type alias Module editor model msg =
+type alias Module editor model fieldset msg =
     { init : ( Model editor -> model, Cmd msg ) -> ( model, Cmd msg )
     , elements : { fields : model -> List (Html msg), submitMsg : msg }
     , update : Msg editor -> model -> ( model, Cmd msg )
+    , fieldset : model -> fieldset
     }
 
 
-build : Init editor record model msg -> Module editor model msg
+build : Init editor record fieldset model msg -> Module editor model fieldset msg
 build (Init init_) =
     { init =
         \( toModel, cmdMsg ) ->
@@ -186,4 +209,7 @@ build (Init init_) =
                 (init_.fromModel model)
                 |> Tuple.mapFirst
                     (init_.toModel model)
+    , fieldset =
+        \model ->
+            (\(Fieldset fs) -> fs model) init_.fieldset
     }

@@ -59,7 +59,7 @@ view model =
             signupModule.fieldset model
 
         withLabel l field =
-            Html.div [ Attr.style "margin" "12px" ] [ Html.label [] [ Html.text l ], field ]
+            Html.div [ Attr.style "margin" "12px" ] [ Html.label [] [ Html.text l ], field [ Attr.style "margin" "4px" ] ]
     in
     Html.div []
         [ Html.div []

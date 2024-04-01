@@ -18,9 +18,9 @@ type alias Record =
 
 
 type alias Fieldset msg =
-    { name : Html msg
-    , age : Html msg
-    , emailAddress : Html msg
+    { name : Ui.Form.FieldEl msg
+    , age : Ui.Form.FieldEl msg
+    , emailAddress : Ui.Form.FieldEl msg
     }
 
 
@@ -46,7 +46,9 @@ toRecord editors =
         |> (\e -> Maybe.map3 Record e.name e.age e.emailAddress)
 
 
-form : { toMsg : Ui.Form.Msg Editor -> msg, onSubmit : Record -> msg } -> Ui.Form.Module Editor { model | signupForm : Ui.Form.Model Editor } (Fieldset msg) msg
+form :
+    { toMsg : Ui.Form.Msg Editor -> msg, onSubmit : Record -> msg }
+    -> Ui.Form.Module Editor { model | signupForm : Ui.Form.Model Editor } (Fieldset msg) msg
 form { toMsg, onSubmit } =
     Ui.Form.init Fieldset
         { toModel = \m formModel -> { m | signupForm = formModel }
@@ -58,16 +60,13 @@ form { toMsg, onSubmit } =
         |> Ui.Form.withInput
             { wrap = Name
             , initialValue = Nothing
-            , attrs = []
             }
         |> Ui.Form.withInput
             { wrap = Maybe.andThen String.toInt >> Age
             , initialValue = Nothing
-            , attrs = []
             }
         |> Ui.Form.withInput
             { wrap = EmailAddress
             , initialValue = Nothing
-            , attrs = []
             }
         |> Ui.Form.build

@@ -28,6 +28,10 @@ type Fieldset model fieldset
     = Fieldset (model -> fieldset)
 
 
+type alias FieldEl msg =
+    List (Html.Attribute msg) -> Html msg
+
+
 update :
     { onSubmit : record -> msg, toMsg : Msg editor -> msg, toRecord : List editor -> Maybe record }
     -> Msg editor
@@ -105,11 +109,10 @@ init fieldset { toModel, fromModel, toMsg, toRecord, onSubmit } =
 withInput :
     { wrap : Maybe String -> editor
     , initialValue : Maybe String
-    , attrs : List (Html.Attribute msg)
     }
-    -> Init editor record (Html msg -> fieldset) model msg
+    -> Init editor record ((List (Html.Attribute msg) -> Html msg) -> fieldset) model msg
     -> Init editor record fieldset model msg
-withInput { wrap, initialValue, attrs } (Init init_) =
+withInput { wrap, initialValue } (Init init_) =
     let
         internals : model -> Internals editor
         internals =
@@ -130,7 +133,7 @@ withInput { wrap, initialValue, attrs } (Init init_) =
                         Nothing
                 )
                 ((internals model).editors |> Dict.get init_.fieldCount)
-                |> Maybe.withDefault attrs
+                |> Maybe.withDefault attrs_
 
         withEvents : List (Html.Attribute msg) -> List (Html.Attribute msg)
         withEvents attrs_ =
@@ -139,9 +142,9 @@ withInput { wrap, initialValue, attrs } (Init init_) =
                 :: Html.Events.onBlur (init_.toMsg UserBlurredField)
                 :: attrs_
 
-        field : model -> Html msg
+        field : model -> List (Html.Attribute msg) -> Html msg
         field =
-            \model ->
+            \model attrs ->
                 Html.input
                     (attrs |> withValueAttr model |> withEvents)
                     []

@@ -59,15 +59,14 @@ view model =
     in
     Html.div []
         [ Html.div []
-            [ Html.div [] <| signupModule.elements.fields model
-            , Html.button [ Html.Events.onClick signupModule.elements.submitMsg ] [ Html.text "Submit" ]
-            , Html.hr [] []
-            , Html.hr [] []
-            , Html.div []
+            [ Html.div []
                 [ fieldset.name
                 , fieldset.age
                 , fieldset.emailAddress
                 ]
+            , Html.button [ Html.Events.onClick signupModule.submitMsg ] [ Html.text "Submit" ]
+            , Html.hr [] []
+            , Html.hr [] []
             , Html.hr [] []
             , Html.hr [] []
             , Debug.toString model |> Html.text

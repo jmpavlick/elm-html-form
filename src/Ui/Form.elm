@@ -73,7 +73,7 @@ type Init editor record fieldset model msg
         , toMsg : Msg editor -> msg
         , toRecord : List editor -> Maybe record
         , onSubmit : record -> msg
-        , fields : Dict Int (model -> Html msg)
+        , fieldCount : Int
         , initModel : Model editor -> Model editor
         , fieldset : Fieldset model fieldset
         }
@@ -95,7 +95,7 @@ init fieldset { toModel, fromModel, toMsg, toRecord, onSubmit } =
         , fromModel = fromModel
         , toMsg = toMsg
         , toRecord = toRecord
-        , fields = Dict.empty
+        , fieldCount = 0
         , initModel = identity
         , onSubmit = onSubmit
         , fieldset = Fieldset (always fieldset)
@@ -119,10 +119,6 @@ withInput { wrap, initialValue, attrs } (Init init_) =
         initEditor =
             wrap initialValue
 
-        nextIndex : Int
-        nextIndex =
-            Dict.size init_.fields
-
         withValueAttr : model -> List (Html.Attribute msg) -> List (Html.Attribute msg)
         withValueAttr model attrs_ =
             Maybe.andThen
@@ -133,13 +129,13 @@ withInput { wrap, initialValue, attrs } (Init init_) =
                     else
                         Nothing
                 )
-                ((internals model).editors |> Dict.get nextIndex)
+                ((internals model).editors |> Dict.get init_.fieldCount)
                 |> Maybe.withDefault attrs
 
         withEvents : List (Html.Attribute msg) -> List (Html.Attribute msg)
         withEvents attrs_ =
-            Html.Events.onInput (Just >> wrap >> UserUpdatedField nextIndex >> init_.toMsg)
-                :: Html.Events.onFocus (UserFocusedField nextIndex |> init_.toMsg)
+            Html.Events.onInput (Just >> wrap >> UserUpdatedField init_.fieldCount >> init_.toMsg)
+                :: Html.Events.onFocus (UserFocusedField init_.fieldCount |> init_.toMsg)
                 :: Html.Events.onBlur (init_.toMsg UserBlurredField)
                 :: attrs_
 
@@ -159,10 +155,10 @@ withInput { wrap, initialValue, attrs } (Init init_) =
                     field model
     in
     Init
-        { fields = Dict.insert nextIndex field init_.fields
+        { fieldCount = init_.fieldCount + 1
         , initModel =
             init_.initModel
-                >> (\(Model m) -> Model { m | editors = Dict.insert nextIndex initEditor m.editors })
+                >> (\(Model m) -> Model { m | editors = Dict.insert init_.fieldCount initEditor m.editors })
         , toModel = init_.toModel
         , fromModel = init_.fromModel
         , toMsg = init_.toMsg
@@ -174,7 +170,7 @@ withInput { wrap, initialValue, attrs } (Init init_) =
 
 type alias Module editor model fieldset msg =
     { init : ( Model editor -> model, Cmd msg ) -> ( model, Cmd msg )
-    , elements : { fields : model -> List (Html msg), submitMsg : msg }
+    , submitMsg : msg
     , update : Msg editor -> model -> ( model, Cmd msg )
     , fieldset : model -> fieldset
     }
@@ -192,13 +188,7 @@ build (Init init_) =
                         }
             , cmdMsg
             )
-    , elements =
-        { fields =
-            \model ->
-                Dict.values init_.fields
-                    |> List.map ((|>) model)
-        , submitMsg = init_.toMsg UserClickedSubmit
-        }
+    , submitMsg = init_.toMsg UserClickedSubmit
     , update =
         \msg model ->
             update

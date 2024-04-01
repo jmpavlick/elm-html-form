@@ -3,8 +3,7 @@ module Main exposing (..)
 import Browser
 import Html exposing (Html)
 import Html.Events
-import Signup
-import Ui.Form
+import Signup2 as Signup
 import Ui.Form2
 
 
@@ -19,15 +18,15 @@ main =
 
 
 type alias Model =
-    { signupForm : Ui.Form.Model Signup.Editor }
+    { signupForm : Ui.Form2.Model Signup.Editor }
 
 
 type Msg
-    = GotSignupMsg (Ui.Form.Msg Signup.Editor)
+    = GotSignupMsg (Ui.Form2.Msg Signup.Editor)
     | GotSignupOnSubmit Signup.Record
 
 
-signupModule : Ui.Form.Module Signup.Editor Model Msg
+signupModule : Ui.Form2.Module Signup.Editor Model (Signup.Fieldset Msg) Msg
 signupModule =
     Signup.form { toMsg = GotSignupMsg, onSubmit = GotSignupOnSubmit }
 
@@ -54,66 +53,23 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
+    let
+        fieldset =
+            signupModule.fieldset model
+    in
     Html.div []
         [ Html.div []
             [ Html.div [] <| signupModule.elements.fields model
             , Html.button [ Html.Events.onClick signupModule.elements.submitMsg ] [ Html.text "Submit" ]
             , Html.hr [] []
+            , Html.hr [] []
+            , Html.div []
+                [ fieldset.name
+                , fieldset.age
+                , fieldset.emailAddress
+                ]
+            , Html.hr [] []
+            , Html.hr [] []
             , Debug.toString model |> Html.text
             ]
         ]
-
-
-
-{-
-   element :
-       { init : flags -> ( model, Cmd msg )
-       , view : model -> Html msg
-       , update : msg -> model -> ( model, Cmd msg )
-       , subscriptions : model -> Sub msg
-       }
-       -> Program flags model msg
--}
-
-
-type alias Msg_ =
-    ( Model -> Model, Cmd (Model -> Model) )
-
-
-update_ : Msg_ -> Model -> ( Model, Cmd Msg_ )
-update_ ( msg, cmd ) model =
-    ( msg model
-    , Cmd.map (\c -> ( c, Cmd.none )) cmd
-    )
-
-
-mapMsg : Msg -> Msg_
-mapMsg classic =
-    ( \model ->
-        update classic model
-            |> Tuple.first
-    , Cmd.none
-    )
-
-
-withoutIo : Msg -> (Model -> Model)
-withoutIo msg =
-    \model ->
-        update msg model
-            |> Tuple.first
-
-
-mapMsg3 : Msg -> (Model -> ( Model, Cmd (Model -> Model) ))
-mapMsg3 msg =
-    \model ->
-        update msg model
-            |> (\( updatedModel, cmdMsg ) ->
-                    ( updatedModel
-                    , Cmd.map withoutIo cmdMsg
-                    )
-               )
-
-
-etadpu : Msg -> ( Msg_, Cmd Msg_ )
-etadpu classic =
-    Debug.todo ""

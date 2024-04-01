@@ -2,6 +2,7 @@ module Main exposing (..)
 
 import Browser
 import Html exposing (Html)
+import Html.Attributes as Attr
 import Html.Events
 import Signup
 import Ui.Form
@@ -56,18 +57,18 @@ view model =
     let
         fieldset =
             signupModule.fieldset model
+
+        withLabel l field =
+            Html.div [ Attr.style "margin" "12px" ] [ Html.label [] [ Html.text l ], field ]
     in
     Html.div []
         [ Html.div []
             [ Html.div []
-                [ fieldset.name
-                , fieldset.age
-                , fieldset.emailAddress
+                [ fieldset.name |> withLabel "Name"
+                , fieldset.age |> withLabel "Age"
+                , fieldset.emailAddress |> withLabel "Email address"
                 ]
             , Html.button [ Html.Events.onClick signupModule.submitMsg ] [ Html.text "Submit" ]
-            , Html.hr [] []
-            , Html.hr [] []
-            , Html.hr [] []
             , Html.hr [] []
             , Debug.toString model |> Html.text
             ]

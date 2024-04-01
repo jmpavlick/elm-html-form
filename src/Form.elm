@@ -142,6 +142,11 @@ input =
         }
 
 
+withInitialValue : Maybe value -> Field value editor msg -> Field value editor msg
+withInitialValue value (Field field) =
+    Field { field | initialValue = value }
+
+
 type alias Module editor model fieldset msg =
     { init : ( Model editor -> model, Cmd msg ) -> ( model, Cmd msg )
     , submitMsg : msg

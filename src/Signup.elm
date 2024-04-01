@@ -58,5 +58,5 @@ form { toMsg, onSubmit } =
         }
         |> Form.withField Name Form.input
         |> Form.withField (Maybe.andThen String.toInt >> Age) Form.input
-        |> Form.withField EmailAddress Form.input
+        |> Form.withField EmailAddress (Form.input |> Form.withInitialValue (Just "john@pavlick.dev"))
         |> Form.build

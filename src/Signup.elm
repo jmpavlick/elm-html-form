@@ -1,7 +1,6 @@
 module Signup exposing (..)
 
 import Form
-import Html exposing (Html)
 
 
 type Editor
@@ -57,16 +56,7 @@ form { toMsg, onSubmit } =
         , toRecord = toRecord
         , onSubmit = onSubmit
         }
-        |> Form.withInput
-            { wrap = Name
-            , initialValue = Nothing
-            }
-        |> Form.withInput
-            { wrap = Maybe.andThen String.toInt >> Age
-            , initialValue = Nothing
-            }
-        |> Form.withInput
-            { wrap = EmailAddress
-            , initialValue = Nothing
-            }
+        |> Form.withField Name Form.input
+        |> Form.withField (Maybe.andThen String.toInt >> Age) Form.input
+        |> Form.withField EmailAddress Form.input
         |> Form.build

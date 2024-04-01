@@ -172,14 +172,15 @@ withInput { wrap, initialValue, attrs } (Init init_) =
         }
 
 
-type alias Module editor model msg =
+type alias Module editor model fieldset msg =
     { init : ( Model editor -> model, Cmd msg ) -> ( model, Cmd msg )
     , elements : { fields : model -> List (Html msg), submitMsg : msg }
     , update : Msg editor -> model -> ( model, Cmd msg )
+    , fieldset : model -> fieldset
     }
 
 
-build : Init editor record fieldset model msg -> Module editor model msg
+build : Init editor record fieldset model msg -> Module editor model fieldset msg
 build (Init init_) =
     { init =
         \( toModel, cmdMsg ) ->
@@ -208,4 +209,7 @@ build (Init init_) =
                 (init_.fromModel model)
                 |> Tuple.mapFirst
                     (init_.toModel model)
+    , fieldset =
+        \model ->
+            (\(Fieldset fs) -> fs model) init_.fieldset
     }

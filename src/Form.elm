@@ -142,6 +142,29 @@ input =
         }
 
 
+checkbox : Field Bool editor msg
+checkbox =
+    Field
+        { initialValue = Nothing
+        , element =
+            \attrs elems ->
+                Html.input (Attr.type_ "checkbox" :: attrs) elems
+        , withValueAttr =
+            \{ wrap, initialValue } editor attrs ->
+                (if wrap initialValue == editor then
+                    initialValue
+
+                 else
+                    Nothing
+                )
+                    |> Maybe.map (\v -> Attr.checked v :: attrs)
+                    |> Maybe.withDefault attrs
+        , withOnInput =
+            \{ wrap, index, toMsg } ->
+                (::) (Html.Events.onCheck (Just >> wrap >> UserUpdatedField index >> toMsg))
+        }
+
+
 withInitialValue : Maybe value -> Field value editor msg -> Field value editor msg
 withInitialValue value (Field field) =
     Field { field | initialValue = value }

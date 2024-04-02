@@ -7,12 +7,14 @@ type Editor
     = Name (Maybe String)
     | Age (Maybe Int)
     | EmailAddress (Maybe String)
+    | Subscribe (Maybe Bool)
 
 
 type alias Record =
     { name : String
     , age : Int
     , emailAddress : String
+    , subscribe : Bool
     }
 
 
@@ -20,6 +22,7 @@ type alias Fieldset msg =
     { name : Form.FieldEl msg
     , age : Form.FieldEl msg
     , emailAddress : Form.FieldEl msg
+    , subscribe : Form.FieldEl msg
     }
 
 
@@ -36,13 +39,17 @@ toRecord editors =
 
                 EmailAddress emailAddress ->
                     { acc | emailAddress = emailAddress }
+
+                Subscribe subscribe ->
+                    { acc | subscribe = subscribe }
         )
         { name = Nothing
         , age = Nothing
         , emailAddress = Nothing
+        , subscribe = Nothing
         }
         editors
-        |> (\e -> Maybe.map3 Record e.name e.age e.emailAddress)
+        |> (\e -> Maybe.map4 Record e.name e.age e.emailAddress e.subscribe)
 
 
 form :
@@ -59,4 +66,5 @@ form { toMsg, onSubmit } =
         |> Form.withField Name Form.input
         |> Form.withField (Maybe.andThen String.toInt >> Age) Form.input
         |> Form.withField EmailAddress (Form.input |> Form.withInitialValue (Just "john@pavlick.dev"))
+        |> Form.withField Subscribe Form.checkbox
         |> Form.build

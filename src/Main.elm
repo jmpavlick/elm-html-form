@@ -67,6 +67,7 @@ view model =
                 [ fieldset.name |> withLabel "Name"
                 , fieldset.age |> withLabel "Age"
                 , fieldset.emailAddress |> withLabel "Email address"
+                , fieldset.subscribe |> withLabel "Subscribe"
                 ]
             , Html.button [ Html.Events.onClick signupModule.submitMsg ] [ Html.text "Submit" ]
             , Html.hr [] []

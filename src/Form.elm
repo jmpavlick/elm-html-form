@@ -4,7 +4,12 @@ import Dict exposing (Dict)
 import Html exposing (Html)
 import Html.Attributes as Attr
 import Html.Events
+import Json.Decode
 import Task
+
+
+
+-- TEA
 
 
 type Model editor
@@ -22,14 +27,6 @@ type Msg editor
     | UserFocusedField Int
     | UserBlurredField
     | UserClickedSubmit
-
-
-type Fieldset model fieldset
-    = Fieldset (model -> fieldset)
-
-
-type alias FieldEl msg =
-    List (Html.Attribute msg) -> Html msg
 
 
 update :
@@ -70,6 +67,18 @@ update { onSubmit, toMsg, toRecord } msg (Model model) =
             )
 
 
+
+-- module
+
+
+type alias Module editor model fieldset msg =
+    { init : ( Model editor -> model, Cmd msg ) -> ( model, Cmd msg )
+    , submitMsg : msg
+    , update : Msg editor -> model -> ( model, Cmd msg )
+    , fieldset : model -> fieldset
+    }
+
+
 type Init editor record fieldset model msg
     = Init
         { toModel : model -> Model editor -> model
@@ -106,78 +115,6 @@ init fieldset { toModel, fromModel, toMsg, toRecord, onSubmit } =
         }
 
 
-type Field value editor msg
-    = Field
-        { initialValue : Maybe value
-        , element : List (Html.Attribute msg) -> List (Html msg) -> Html msg
-        , withValueAttr :
-            { wrap : Maybe value -> editor
-            , initialValue : Maybe value
-            }
-            -> editor
-            -> List (Html.Attribute msg)
-            -> List (Html.Attribute msg)
-        , withOnInput : { wrap : Maybe value -> editor, index : Int, toMsg : Msg editor -> msg } -> List (Html.Attribute msg) -> List (Html.Attribute msg)
-        }
-
-
-input : Field String editor msg
-input =
-    Field
-        { initialValue = Nothing
-        , element = Html.input
-        , withValueAttr =
-            \{ wrap, initialValue } editor attrs ->
-                (if wrap initialValue == editor then
-                    initialValue
-
-                 else
-                    Nothing
-                )
-                    |> Maybe.map (\v -> Attr.value v :: attrs)
-                    |> Maybe.withDefault attrs
-        , withOnInput =
-            \{ wrap, index, toMsg } ->
-                (::) (Html.Events.onInput (Just >> wrap >> UserUpdatedField index >> toMsg))
-        }
-
-
-checkbox : Field Bool editor msg
-checkbox =
-    Field
-        { initialValue = Nothing
-        , element =
-            \attrs elems ->
-                Html.input (Attr.type_ "checkbox" :: attrs) elems
-        , withValueAttr =
-            \{ wrap, initialValue } editor attrs ->
-                (if wrap initialValue == editor then
-                    initialValue
-
-                 else
-                    Nothing
-                )
-                    |> Maybe.map (\v -> Attr.checked v :: attrs)
-                    |> Maybe.withDefault attrs
-        , withOnInput =
-            \{ wrap, index, toMsg } ->
-                (::) (Html.Events.onCheck (Just >> wrap >> UserUpdatedField index >> toMsg))
-        }
-
-
-withInitialValue : Maybe value -> Field value editor msg -> Field value editor msg
-withInitialValue value (Field field) =
-    Field { field | initialValue = value }
-
-
-type alias Module editor model fieldset msg =
-    { init : ( Model editor -> model, Cmd msg ) -> ( model, Cmd msg )
-    , submitMsg : msg
-    , update : Msg editor -> model -> ( model, Cmd msg )
-    , fieldset : model -> fieldset
-    }
-
-
 build : Init editor record fieldset model msg -> Module editor model fieldset msg
 build (Init init_) =
     { init =
@@ -206,6 +143,33 @@ build (Init init_) =
         \model ->
             (\(Fieldset fs) -> fs model) init_.fieldset
     }
+
+
+type Fieldset model fieldset
+    = Fieldset (model -> fieldset)
+
+
+
+-- fields
+
+
+type alias FieldEl msg =
+    List (Html.Attribute msg) -> Html msg
+
+
+type Field value editor msg
+    = Field
+        { initialValue : Maybe value
+        , element : List (Html.Attribute msg) -> List (Html msg) -> Html msg
+        , withValueAttr :
+            { wrap : Maybe value -> editor
+            , initialValue : Maybe value
+            }
+            -> editor
+            -> List (Html.Attribute msg)
+            -> List (Html.Attribute msg)
+        , withEventHandler : { wrap : Maybe value -> editor, index : Int, toMsg : Msg editor -> msg } -> List (Html.Attribute msg) -> List (Html.Attribute msg)
+        }
 
 
 withField :
@@ -240,7 +204,7 @@ withField wrap (Field field) (Init init_) =
             Html.Events.onFocus (UserFocusedField init_.nextIndex |> init_.toMsg)
                 :: Html.Events.onBlur (init_.toMsg UserBlurredField)
                 :: attrs_
-                |> field.withOnInput { wrap = wrap, index = init_.nextIndex, toMsg = init_.toMsg }
+                |> field.withEventHandler { wrap = wrap, index = init_.nextIndex, toMsg = init_.toMsg }
 
         element : model -> List (Html.Attribute msg) -> Html msg
         element model attrs =
@@ -260,3 +224,190 @@ withField wrap (Field field) (Init init_) =
         , onSubmit = init_.onSubmit
         , fieldset = Fieldset (\model -> (\(Fieldset fs) -> fs model (element model)) init_.fieldset)
         }
+
+
+
+-- inputs
+
+
+custom :
+    { element : List (Html.Attribute b) -> List (Html b) -> Html b
+    , eventHandler : (String -> b) -> Html.Attribute b
+    }
+    -> Field String editor b
+custom { element, eventHandler } =
+    Field
+        { initialValue = Nothing
+        , element = element
+        , withValueAttr =
+            \{ wrap, initialValue } editor attrs ->
+                (if wrap initialValue == editor then
+                    initialValue
+
+                 else
+                    Nothing
+                )
+                    |> Maybe.map (\v -> Attr.value v :: attrs)
+                    |> Maybe.withDefault attrs
+        , withEventHandler =
+            \{ wrap, index, toMsg } ->
+                (::)
+                    (eventHandler
+                        (\value ->
+                            Just value
+                                |> wrap
+                                |> UserUpdatedField index
+                                |> toMsg
+                        )
+                    )
+        }
+
+
+toFormMsg : { wrap : Maybe a -> editor, index : Int, toMsg : Msg editor -> msg } -> a -> msg
+toFormMsg { wrap, index, toMsg } =
+    Just >> wrap >> UserUpdatedField index >> toMsg
+
+
+customEvent :
+    String
+    ->
+        { stopPropagation : Bool
+        , preventDefault : Bool
+        }
+    -> Json.Decode.Decoder a
+    ->
+        { wrap : Maybe a -> editor
+        , index : Int
+        , toMsg : Msg editor -> msg
+        }
+    -> Html.Attribute msg
+customEvent event { stopPropagation, preventDefault } decoder params =
+    Json.Decode.map (toFormMsg params) decoder
+        |> Json.Decode.map
+            (\msg ->
+                { message = msg
+                , stopPropagation = stopPropagation
+                , preventDefault = preventDefault
+                }
+            )
+        |> Html.Events.custom event
+
+
+custom_ :
+    String
+    ->
+        { stopPropagation : Bool
+        , preventDefault : Bool
+        }
+    -> Json.Decode.Decoder a
+    ->
+        { element : List (Html.Attribute msg) -> List (Html msg) -> Html msg
+        , toValueAttr : a -> Maybe (Html.Attribute msg)
+        }
+    -> Field a editor msg
+custom_ event params decoder { element, toValueAttr } =
+    Field
+        { initialValue = Nothing
+        , element = element
+        , withValueAttr =
+            \{ wrap, initialValue } editor attrs ->
+                (if wrap initialValue == editor then
+                    initialValue
+
+                 else
+                    Nothing
+                )
+                    |> Maybe.andThen toValueAttr
+                    |> Maybe.map (\v -> v :: attrs)
+                    |> Maybe.withDefault attrs
+        , withEventHandler =
+            \({ wrap, index, toMsg } as params_) ->
+                (::)
+                    (customEvent event params decoder params_)
+        }
+
+
+{-| the WIP here is that we want to be able to "sidechain" events, so we need to rewrite the `Field` type
+so that we can defunctionalize the commands to create an `input` so that we can define all of our "field"
+functions in terms of the current constructor of `custom_`, so that we can expose an API like this:
+
+    Form.input
+        |> Form.withStopPropagation
+
+and so that we can add a motion like this:
+
+    Form.input
+        |> withSubscription someMsg
+
+that sort of >>s the element inside of `div` tags that also emit bubbled events, with the outermost element being responsible for stopping propagation.
+
+-}
+input : Field String editor msg
+input =
+    custom_
+        "input"
+        { stopPropagation = True
+        , preventDefault = True
+        }
+        Html.Events.targetValue
+        { element = Html.input
+        , toValueAttr = Attr.value >> Just
+        }
+
+
+inputShort : Field String editor msg
+inputShort =
+    custom { element = Html.input, eventHandler = Html.Events.onInput }
+
+
+input_ : Field String editor msg
+input_ =
+    Field
+        { initialValue = Nothing
+        , element = Html.input
+        , withValueAttr =
+            \{ wrap, initialValue } editor attrs ->
+                (if wrap initialValue == editor then
+                    initialValue
+
+                 else
+                    Nothing
+                )
+                    |> Maybe.map (\v -> Attr.value v :: attrs)
+                    |> Maybe.withDefault attrs
+        , withEventHandler =
+            \{ wrap, index, toMsg } ->
+                (::) (Html.Events.onInput (Just >> wrap >> UserUpdatedField index >> toMsg))
+        }
+
+
+checkbox : Field Bool editor msg
+checkbox =
+    Field
+        { initialValue = Nothing
+        , element =
+            \attrs elems ->
+                Html.input (Attr.type_ "checkbox" :: attrs) elems
+        , withValueAttr =
+            \{ wrap, initialValue } editor attrs ->
+                (if wrap initialValue == editor then
+                    initialValue
+
+                 else
+                    Nothing
+                )
+                    |> Maybe.map (\v -> Attr.checked v :: attrs)
+                    |> Maybe.withDefault attrs
+        , withEventHandler =
+            \{ wrap, index, toMsg } ->
+                (::) (Html.Events.onCheck (Just >> wrap >> UserUpdatedField index >> toMsg))
+        }
+
+
+
+-- input builders
+
+
+withInitialValue : Maybe value -> Field value editor msg -> Field value editor msg
+withInitialValue value (Field field) =
+    Field { field | initialValue = value }

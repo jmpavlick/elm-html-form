@@ -25,6 +25,7 @@ type alias Model =
 type Msg
     = GotSignupMsg (Form.Msg Signup.Editor)
     | GotSignupOnSubmit Signup.Record
+    | GotSideloadedCallback String
 
 
 signupModule : Form.Module Signup.Editor Model (Signup.Fieldset Msg) Msg
@@ -51,6 +52,13 @@ update msg model =
             in
             ( model, Cmd.none )
 
+        GotSideloadedCallback value ->
+            let
+                _ =
+                    Debug.log "GotSideloadedCallback" value
+            in
+            ( model, Cmd.none )
+
 
 view : Model -> Html Msg
 view model =
@@ -59,7 +67,13 @@ view model =
             signupModule.fieldset model
 
         withLabel l field =
-            Html.div [ Attr.style "margin" "12px" ] [ Html.label [] [ Html.text l ], field [ Attr.style "margin" "4px" ] ]
+            Html.div [ Attr.style "margin" "12px" ]
+                [ Html.label [] [ Html.text l ]
+                , field [ Attr.style "margin" "4px" ] |> withCallback
+                ]
+
+        withCallback field =
+            Html.div [ Html.Events.onInput GotSideloadedCallback ] [ field ]
     in
     Html.div []
         [ Html.div []

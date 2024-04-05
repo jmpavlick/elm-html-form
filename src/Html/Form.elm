@@ -197,8 +197,13 @@ withField wrap (Internals.FieldConfig fieldConfig) (Config config) =
 
         invalidateWhens : List Internals.FocusEvent -> List Internals.InvalidateWhen
         invalidateWhens list =
-            Internals.Always
-                :: (case list of
+            List.concat
+                [ [ Internals.Always ]
+                , if fieldConfig.initialValue /= Nothing && List.isEmpty list then
+                    [ Internals.EditingOrBlurred, Internals.BlurredAfterEdit ]
+
+                  else
+                    case list of
                         [] ->
                             []
 
@@ -207,14 +212,14 @@ withField wrap (Internals.FieldConfig fieldConfig) (Config config) =
                                 [ Internals.EditingOrBlurred ]
 
                             else if x == Internals.Blurred config.index then
-                                [ Internals.EditingOrBlurred, Internals.BlurredAfterEdit ]
+                                [ Internals.EditingOrBlurred ]
 
                             else if List.member (Internals.Blurred config.index) xs then
                                 [ Internals.BlurredAfterEdit ]
 
                             else
                                 []
-                   )
+                ]
 
         allErrors : model -> List { error : error, shouldBeRaised : Bool }
         allErrors model =

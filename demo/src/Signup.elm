@@ -86,7 +86,6 @@ form { toMsg, onSubmit } =
         |> Html.Form.withField (Maybe.andThen String.toInt >> Age) Html.Form.input
         |> Html.Form.withField EmailAddress
             (Html.Form.input
-                |> Html.Form.withInitialValue (Just "john@pavlick.dev")
                 |> Html.Form.withValidation
                     (Html.Form.Validation.when.editingOrBlurred
                         (\args ->

@@ -1,10 +1,10 @@
 module Main exposing (..)
 
 import Browser
-import Form
 import Html exposing (Html)
-import Html.Attributes as Attr
+import Html.Attributes
 import Html.Events
+import Html.Form
 import Signup
 
 
@@ -19,16 +19,16 @@ main =
 
 
 type alias Model =
-    { signupForm : Form.Model Signup.Editor }
+    { signupForm : Html.Form.Model Signup.Editor }
 
 
 type Msg
-    = GotSignupMsg (Form.Msg Signup.Editor)
+    = GotSignupMsg (Html.Form.Msg Signup.Editor)
     | GotSignupOnSubmit Signup.Record
     | GotSideloadedCallback String
 
 
-signupModule : Form.Module Signup.Editor Model (Signup.Fieldset Msg) Msg
+signupModule : Html.Form.Module String Signup.Editor Model (Signup.Fieldset Msg) Msg
 signupModule =
     Signup.form { toMsg = GotSignupMsg, onSubmit = GotSignupOnSubmit }
 
@@ -67,9 +67,9 @@ view model =
             signupModule.fieldset model
 
         withLabel l field =
-            Html.div [ Attr.style "margin" "12px" ]
+            Html.div [ Html.Attributes.style "margin" "12px" ]
                 [ Html.label [] [ Html.text l ]
-                , field [ Attr.style "margin" "4px" ] |> withCallback
+                , field [ Html.Attributes.style "margin" "4px" ] |> withCallback
                 ]
 
         withCallback field =
@@ -78,13 +78,33 @@ view model =
     Html.div []
         [ Html.div []
             [ Html.div []
-                [ fieldset.name |> withLabel "Name"
-                , fieldset.age |> withLabel "Age"
-                , fieldset.emailAddress |> withLabel "Email address"
-                , fieldset.subscribe |> withLabel "Subscribe"
+                [ Html.div []
+                    [ fieldset.name.element |> withLabel "Name"
+                    , List.map
+                        (\e ->
+                            Html.div [] [ Html.hr [] [], Html.text e ]
+                        )
+                        fieldset.name.errors
+                        |> Html.div []
+                    ]
+                , fieldset.age.element |> withLabel "Age"
+                , fieldset.emailAddress.element |> withLabel "Email address"
+                , fieldset.subscribe.element |> withLabel "Subscribe"
                 ]
             , Html.button [ Html.Events.onClick signupModule.submitMsg ] [ Html.text "Submit" ]
             , Html.hr [] []
             , Debug.toString model |> Html.text
+            , Html.hr [] []
+            , Debug.toString (signupModule.errors model) |> Html.text
+            , Html.hr [] []
+            , Debug.toString (signupModule.errors model |> Signup.fromErrors) |> Html.text
+            , Html.div []
+                [ Html.input [ Html.Attributes.attribute "list" "0" ] []
+                , Html.datalist [ Html.Attributes.id "0" ]
+                    [ Html.option [ Html.Attributes.value "lorem" ] [ Html.text "lorem" ]
+                    , Html.option [ Html.Attributes.value "ipsum" ] [ Html.text "ipsum" ]
+                    , Html.option [ Html.Attributes.value "dolor" ] [ Html.text "dolor" ]
+                    ]
+                ]
             ]
         ]

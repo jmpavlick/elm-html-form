@@ -251,7 +251,25 @@ withField wrap (Internals.FieldConfig fieldConfig) (Config config) =
 
                 invalidateWhens_ : List Internals.InvalidateWhen
                 invalidateWhens_ =
-                    invalidateWhens internals.focusEvents
+                    internals.focusEvents
+                        |> List.filterMap
+                            (\fe ->
+                                if
+                                    config.index
+                                        == (case fe of
+                                                Internals.Blurred i ->
+                                                    i
+
+                                                Internals.Focused i ->
+                                                    i
+                                           )
+                                then
+                                    Just fe
+
+                                else
+                                    Nothing
+                            )
+                        |> invalidateWhens
 
                 validations : List { error : Result error editor, shouldBeRaised : Bool }
                 validations =

@@ -4,14 +4,20 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "elm-go src/Main.elm --open --pushstate -- --output=main.js --debug"
+    "start": "vite --host",
+    "preview": "elm-doc-preview",
+    "review": "elm-review --fix-all",
+    "review:watch": "elm-review --watch --fix-all"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "elm": "0.19.1-6",
+    "elm-doc-preview": "^5.0.5",
     "elm-format": "^0.8.7",
-    "elm-go": "^5.0.20",
-    "elm-test": "0.19.1-revision12"
+    "elm-review": "^2.11.1",
+    "elm-test": "0.19.1-revision12",
+    "vite": "^5.2.8",
+    "vite-plugin-elm": "^3.0.0"
   }
 }

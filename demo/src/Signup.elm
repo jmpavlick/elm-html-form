@@ -1,4 +1,4 @@
-module Signup exposing (..)
+module Signup exposing (Editor(..), Error, Errors, Fieldset, Record, form, fromErrors)
 
 import Html
 import Html.Form

@@ -1,4 +1,4 @@
-module Html.Form exposing (..)
+module Html.Form exposing (Config(..), Element, Field, FieldConfig, Fieldset(..), Model, Module, Msg, Validation, build, checkbox, init, input, withField, withInitialValue, withStopPropagation, withValidation)
 
 import Dict
 import Html
@@ -111,6 +111,13 @@ type Fieldset model fieldset
 type alias Field error msg =
     { element : List (Html.Attribute msg) -> Html.Html msg
     , errors : List error
+    , toAttrs : List (Html.Attribute msg) -> List (Html.Attribute msg)
+    , attrs :
+        { onFocus : Html.Attribute msg
+        , onBlur : Html.Attribute msg
+        , onEvent : Html.Attribute msg
+        , value : Html.Attribute msg
+        }
     }
 
 
@@ -160,19 +167,38 @@ withField wrap (Internals.FieldConfig fieldConfig) (Config config) =
             Dict.get config.index internals.editors
                 |> Maybe.withDefault initialEditor
 
-        element : model -> List (Html.Attribute msg) -> Html.Html msg
-        element model attrs =
+        withEventAttrs : model -> List (Html.Attribute msg) -> List (Html.Attribute msg)
+        withEventAttrs model attrs =
             let
+                { onFocus, onBlur, onEvent, value } =
+                    attrsRecord model
+            in
+            onFocus :: onBlur :: onEvent :: value :: attrs
+
+        attrsRecord :
+            model
+            ->
+                { onFocus : Html.Attribute msg
+                , onBlur : Html.Attribute msg
+                , onEvent : Html.Attribute msg
+                , value : Html.Attribute msg
+                }
+        attrsRecord model =
+            let
+                mapFocusBlur : Internals.FocusEvent -> msg
                 mapFocusBlur =
                     Internals.UserGeneratedFocusEvent >> config.toMsg
             in
+            { onFocus = Html.Events.onFocus (mapFocusBlur <| Internals.Focused config.index)
+            , onBlur = Html.Events.onBlur (mapFocusBlur <| Internals.Blurred config.index)
+            , onEvent = eventHandler
+            , value = fieldConfig.valueAttr { wrap = wrap, initialValue = fieldConfig.initialValue } (editor model)
+            }
+
+        element : model -> List (Html.Attribute msg) -> Html.Html msg
+        element model attrs =
             fieldConfig.element
-                (Html.Events.onFocus (mapFocusBlur <| Internals.Focused config.index)
-                    :: Html.Events.onBlur (mapFocusBlur <| Internals.Blurred config.index)
-                    :: eventHandler
-                    :: attrs
-                    |> fieldConfig.withValueAttr { initialValue = fieldConfig.initialValue, wrap = wrap } (editor model)
-                )
+                (withEventAttrs model attrs)
                 []
 
         invalidateWhens : List Internals.FocusEvent -> List Internals.InvalidateWhen
@@ -183,19 +209,17 @@ withField wrap (Internals.FieldConfig fieldConfig) (Config config) =
                             []
 
                         x :: xs ->
-                            List.concat
-                                [ if x == Internals.Focused config.index then
-                                    [ Internals.EditingOrBlurred ]
+                            if x == Internals.Focused config.index then
+                                [ Internals.EditingOrBlurred ]
 
-                                  else if x == Internals.Blurred config.index then
-                                    [ Internals.EditingOrBlurred, Internals.BlurredAfterEdit ]
+                            else if x == Internals.Blurred config.index then
+                                [ Internals.EditingOrBlurred, Internals.BlurredAfterEdit ]
 
-                                  else if List.any ((==) (Internals.Blurred config.index)) xs then
-                                    [ Internals.BlurredAfterEdit ]
+                            else if List.member (Internals.Blurred config.index) xs then
+                                [ Internals.BlurredAfterEdit ]
 
-                                  else
-                                    []
-                                ]
+                            else
+                                []
                    )
 
         allErrors : model -> List { error : error, shouldBeRaised : Bool }
@@ -217,7 +241,7 @@ withField wrap (Internals.FieldConfig fieldConfig) (Config config) =
                     List.foldl
                         (\step acc ->
                             case acc of
-                                Err e ->
+                                Err _ ->
                                     acc
 
                                 Ok _ ->
@@ -230,6 +254,7 @@ withField wrap (Internals.FieldConfig fieldConfig) (Config config) =
                 invalidateWhens_ =
                     invalidateWhens internals.focusEvents
 
+                validations : List { error : Result error editor, shouldBeRaised : Bool }
                 validations =
                     List.map
                         (\(Internals.Validation v) ->
@@ -273,6 +298,8 @@ withField wrap (Internals.FieldConfig fieldConfig) (Config config) =
         field model =
             { element = element model
             , errors = fieldErrors model
+            , toAttrs = withEventAttrs model
+            , attrs = attrsRecord model
             }
     in
     Config
@@ -309,12 +336,12 @@ custom :
     { eventName : String
     , decoder : Json.Decode.Decoder value
     , element : Element msg
-    , withValueAttr :
+    , valueAttr :
         { wrap : Maybe value -> editor, initialValue : Maybe value }
-        -> (editor -> List (Html.Attribute msg) -> List (Html.Attribute msg))
+        -> (editor -> Html.Attribute msg)
     }
     -> FieldConfig error value editor msg
-custom { eventName, decoder, element, withValueAttr } =
+custom { eventName, decoder, element, valueAttr } =
     Internals.FieldConfig
         { initialValue = Nothing
         , eventName = eventName
@@ -322,7 +349,7 @@ custom { eventName, decoder, element, withValueAttr } =
         , preventDefault = True
         , decoder = decoder
         , element = element
-        , withValueAttr = withValueAttr
+        , valueAttr = valueAttr
         , validations = []
         }
 
@@ -333,16 +360,15 @@ input =
         { eventName = "input"
         , decoder = Html.Events.targetValue
         , element = Html.input
-        , withValueAttr =
+        , valueAttr =
             \{ wrap, initialValue } ->
-                \editor attrs ->
+                \editor ->
                     if wrap initialValue == editor then
-                        Maybe.map (Html.Attributes.value >> (::)) initialValue
-                            |> Maybe.withDefault identity
-                            |> (|>) attrs
+                        Maybe.map Html.Attributes.value initialValue
+                            |> Maybe.withDefault (Html.Attributes.class "")
 
                     else
-                        attrs
+                        Html.Attributes.class ""
         }
 
 
@@ -354,14 +380,14 @@ checkbox =
         , element =
             \attrs elems ->
                 Html.input (Html.Attributes.type_ "checkbox" :: attrs) elems
-        , withValueAttr =
-            \{ wrap, initialValue } ->
-                \editor attrs ->
+        , valueAttr =
+            \{ wrap } ->
+                \editor ->
                     if editor == wrap (Just True) then
-                        Html.Attributes.checked True :: attrs
+                        Html.Attributes.checked True
 
                     else
-                        attrs
+                        Html.Attributes.class ""
         }
         |> withInitialValue (Just False)
 

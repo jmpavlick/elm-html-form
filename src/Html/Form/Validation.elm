@@ -1,4 +1,4 @@
-module Html.Form.Validation exposing (..)
+module Html.Form.Validation exposing (Validation, When, when)
 
 import Internals
 
@@ -11,6 +11,11 @@ type alias When =
     Internals.InvalidateWhen
 
 
+when :
+    { editingOrBlurred : ({ self : editor, other : editor } -> Result error editor) -> Validation error value editor
+    , blurredAfterEdit : ({ self : editor, other : editor } -> Result error editor) -> Validation error value editor
+    , always : ({ self : editor, other : editor } -> Result error editor) -> Validation error value editor
+    }
 when =
     { editingOrBlurred = init Internals.EditingOrBlurred
     , blurredAfterEdit = init Internals.BlurredAfterEdit

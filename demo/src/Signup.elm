@@ -84,7 +84,38 @@ form { toMsg, onSubmit } =
                     )
             )
         |> Html.Form.withField (Maybe.andThen String.toInt >> Age) Html.Form.input
-        |> Html.Form.withField EmailAddress (Html.Form.input |> Html.Form.withInitialValue (Just "john@pavlick.dev"))
+        |> Html.Form.withField EmailAddress
+            (Html.Form.input
+                |> Html.Form.withInitialValue (Just "john@pavlick.dev")
+                |> Html.Form.withValidation
+                    (Html.Form.Validation.when.editingOrBlurred
+                        (\args ->
+                            case args.self of
+                                EmailAddress (Just v) ->
+                                    if v == "" then
+                                        Err "Email address must not be empty"
+
+                                    else
+                                        Ok args.self
+
+                                _ ->
+                                    Err "Email address must not be empty"
+                        )
+                        |> Html.Form.Validation.andThen
+                            (\args ->
+                                case args.self of
+                                    EmailAddress (Just v) ->
+                                        if not <| String.contains "@" v then
+                                            Err "Email addresses must contain an @ symbol"
+
+                                        else
+                                            Ok args.self
+
+                                    _ ->
+                                        Ok args.self
+                            )
+                    )
+            )
         |> Html.Form.withField Subscribe (Html.Form.checkbox |> Html.Form.withStopPropagation False)
         |> Html.Form.build
 

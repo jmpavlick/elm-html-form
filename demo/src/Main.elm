@@ -48,7 +48,7 @@ update msg model =
         GotSignupOnSubmit record ->
             let
                 _ =
-                    Debug.log "SUBMITTED" record
+                    Debug.log "GotSignupOnSubmit" record
             in
             ( model, Cmd.none )
 
@@ -63,40 +63,56 @@ update msg model =
 view : Model -> Html Msg
 view model =
     let
+        fieldset : Signup.Fieldset Msg
         fieldset =
             signupModule.fieldset model
 
+        margin : Int -> Html.Attribute msg
+        margin i =
+            String.fromInt i
+                ++ "px"
+                |> Html.Attributes.style "margin"
+
         withLabel l field =
-            Html.div [ Html.Attributes.style "margin" "12px" ]
-                [ Html.label [] [ Html.text l ]
-                , field [ Html.Attributes.style "margin" "4px" ]
+            Html.div [ margin 12 ]
+                [ Html.label [ margin 4 ]
+                    [ Html.text l
+                    , field
+                    ]
                 ]
 
         withCallback field =
             Html.div [ Html.Events.onInput GotPropagatedEvent ] [ field ]
+
+        withErrors field attrs =
+            let
+                showErrors =
+                    not <| List.isEmpty field.errors
+            in
+            Html.div []
+                [ field.element <|
+                    if showErrors then
+                        Html.Attributes.style "text-decoration-style" "wavy"
+                            :: Html.Attributes.style "text-decoration-line" "underline"
+                            :: Html.Attributes.style "text-decoration-color" "red"
+                            :: attrs
+
+                    else
+                        attrs
+                , if showErrors then
+                    Html.div [] [ Html.ul [] <| Html.h4 [] [ Html.text "Errors" ] :: List.map (\err -> Html.li [] [ Html.text err ]) field.errors ]
+
+                  else
+                    Html.text ""
+                ]
     in
     Html.div []
         [ Html.div []
             [ Html.div []
-                [ Html.div []
-                    [ fieldset.name.element |> withLabel "Name"
-                    , List.map
-                        (\e ->
-                            Html.div [] [ Html.hr [] [], Html.text e ]
-                        )
-                        fieldset.name.errors
-                        |> Html.div []
-                    ]
-                , fieldset.age.element |> withLabel "Age"
-                , Html.div []
-                    [ Html.label [] [ Html.text "Email Address" ]
-                    , Html.div []
-                        [ Html.input
-                            (fieldset.emailAddress.toAttrs [])
-                            []
-                        ]
-                    ]
-                , fieldset.subscribe.element |> withLabel "Subscribe"
+                [ withErrors fieldset.name [ margin 12 ] |> withLabel "Name"
+                , Html.input (fieldset.age.toAttrs [ margin 12 ]) [] |> withLabel "Age"
+                , withErrors fieldset.emailAddress [ margin 12 ] |> withLabel "Email Address"
+                , fieldset.subscribe.element [ Html.Attributes.style "margin" "4px" ] |> withLabel "Subscribe"
                 ]
             , Html.button [ Html.Events.onClick signupModule.submitMsg ] [ Html.text "Submit" ]
             , Html.hr [] []
@@ -105,13 +121,5 @@ view model =
             , Debug.toString (signupModule.errors model) |> Html.text
             , Html.hr [] []
             , Debug.toString (signupModule.errors model |> Signup.fromErrors) |> Html.text
-            , Html.div []
-                [ Html.input [ Html.Attributes.attribute "list" "0" ] []
-                , Html.datalist [ Html.Attributes.id "0" ]
-                    [ Html.option [ Html.Attributes.value "lorem" ] [ Html.text "lorem" ]
-                    , Html.option [ Html.Attributes.value "ipsum" ] [ Html.text "ipsum" ]
-                    , Html.option [ Html.Attributes.value "dolor" ] [ Html.text "dolor" ]
-                    ]
-                ]
             ]
         ]

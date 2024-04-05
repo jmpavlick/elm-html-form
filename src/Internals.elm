@@ -1,4 +1,4 @@
-module Internals exposing (..)
+module Internals exposing (Element, FieldConfig(..), FocusEvent(..), Internals, InvalidateWhen(..), Model(..), Msg(..), Validation(..), update)
 
 import Dict
 import Html
@@ -22,9 +22,9 @@ type FieldConfig error value editor msg
         , preventDefault : Bool
         , decoder : Json.Decode.Decoder value
         , element : Element msg
-        , withValueAttr :
+        , valueAttr :
             { wrap : Maybe value -> editor, initialValue : Maybe value }
-            -> (editor -> List (Html.Attribute msg) -> List (Html.Attribute msg))
+            -> (editor -> Html.Attribute msg)
         , validations : List (Validation error value editor)
         }
 

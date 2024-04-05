@@ -1,4 +1,4 @@
-module Main exposing (..)
+module Main exposing (Model, Msg(..), main)
 
 import Browser
 import Html exposing (Html)
@@ -25,7 +25,7 @@ type alias Model =
 type Msg
     = GotSignupMsg (Html.Form.Msg Signup.Editor)
     | GotSignupOnSubmit Signup.Record
-    | GotSideloadedCallback String
+    | GotPropagatedEvent String
 
 
 signupModule : Html.Form.Module String Signup.Editor Model (Signup.Fieldset Msg) Msg
@@ -52,10 +52,10 @@ update msg model =
             in
             ( model, Cmd.none )
 
-        GotSideloadedCallback value ->
+        GotPropagatedEvent value ->
             let
                 _ =
-                    Debug.log "GotSideloadedCallback" value
+                    Debug.log "GotPropagatedEvent" value
             in
             ( model, Cmd.none )
 
@@ -69,11 +69,11 @@ view model =
         withLabel l field =
             Html.div [ Html.Attributes.style "margin" "12px" ]
                 [ Html.label [] [ Html.text l ]
-                , field [ Html.Attributes.style "margin" "4px" ] |> withCallback
+                , field [ Html.Attributes.style "margin" "4px" ]
                 ]
 
         withCallback field =
-            Html.div [ Html.Events.onInput GotSideloadedCallback ] [ field ]
+            Html.div [ Html.Events.onInput GotPropagatedEvent ] [ field ]
     in
     Html.div []
         [ Html.div []
@@ -88,7 +88,14 @@ view model =
                         |> Html.div []
                     ]
                 , fieldset.age.element |> withLabel "Age"
-                , fieldset.emailAddress.element |> withLabel "Email address"
+                , Html.div []
+                    [ Html.label [] [ Html.text "Email Address" ]
+                    , Html.div []
+                        [ Html.input
+                            (fieldset.emailAddress.toAttrs [])
+                            []
+                        ]
+                    ]
                 , fieldset.subscribe.element |> withLabel "Subscribe"
                 ]
             , Html.button [ Html.Events.onClick signupModule.submitMsg ] [ Html.text "Submit" ]

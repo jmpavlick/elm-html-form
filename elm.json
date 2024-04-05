@@ -3,7 +3,7 @@
     "name": "jmpavlick/elm-html-form",
     "summary": "A flexible and extensible form package in Elm that uses the platform.",
     "license": "MIT",
-    "version": "2.0.1",
+    "version": "2.0.2",
     "exposed-modules": [
         "Html.Form",
         "Html.Form.Validation"

@@ -203,7 +203,7 @@ withField wrap (Internals.FieldConfig fieldConfig) (Config config) =
                     [ Internals.EditingOrBlurred, Internals.BlurredAfterEdit ]
 
                   else
-                    case list of
+                    case Debug.log "invalidateWhens input" list of
                         [] ->
                             []
 
@@ -212,9 +212,9 @@ withField wrap (Internals.FieldConfig fieldConfig) (Config config) =
                                 [ Internals.EditingOrBlurred ]
 
                             else if x == Internals.Blurred config.index then
-                                [ Internals.EditingOrBlurred ]
+                                [ Internals.EditingOrBlurred, Internals.BlurredAfterEdit ]
 
-                            else if List.member (Internals.Blurred config.index) xs then
+                            else if List.member (Internals.Blurred config.index) list then
                                 [ Internals.BlurredAfterEdit ]
 
                             else

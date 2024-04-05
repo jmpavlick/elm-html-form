@@ -1,6 +1,8 @@
 module Signup exposing (..)
 
-import Form
+import Html
+import Html.Form
+import Html.Form.Validation
 
 
 type Editor
@@ -18,11 +20,15 @@ type alias Record =
     }
 
 
+type alias Error =
+    String
+
+
 type alias Fieldset msg =
-    { name : Form.FieldEl msg
-    , age : Form.FieldEl msg
-    , emailAddress : Form.FieldEl msg
-    , subscribe : Form.FieldEl msg
+    { name : Html.Form.Field Error msg
+    , age : Html.Form.Field Error msg
+    , emailAddress : Html.Form.Field Error msg
+    , subscribe : Html.Form.Field Error msg
     }
 
 
@@ -53,18 +59,67 @@ toRecord editors =
 
 
 form :
-    { toMsg : Form.Msg Editor -> msg, onSubmit : Record -> msg }
-    -> Form.Module Editor { model | signupForm : Form.Model Editor } (Fieldset msg) msg
+    { toMsg : Html.Form.Msg Editor -> msg, onSubmit : Record -> msg }
+    -> Html.Form.Module String Editor { model | signupForm : Html.Form.Model Editor } (Fieldset msg) msg
 form { toMsg, onSubmit } =
-    Form.init Fieldset
+    Html.Form.init Fieldset
         { toModel = \m formModel -> { m | signupForm = formModel }
         , fromModel = .signupForm
         , toMsg = toMsg
         , toRecord = toRecord
         , onSubmit = onSubmit
         }
-        |> Form.withField Name Form.input
-        |> Form.withField (Maybe.andThen String.toInt >> Age) Form.input
-        |> Form.withField EmailAddress (Form.input |> Form.withInitialValue (Just "john@pavlick.dev"))
-        |> Form.withField Subscribe Form.checkbox
-        |> Form.build
+        |> Html.Form.withField Name
+            (Html.Form.input
+                |> Html.Form.withStopPropagation False
+                |> Html.Form.withValidation
+                    (Html.Form.Validation.when.blurredAfterEdit
+                        (\args ->
+                            if args.self == Name (Just "John") then
+                                Err "I'm sorry, John; you can't do that."
+
+                            else
+                                Ok args.self
+                        )
+                    )
+            )
+        |> Html.Form.withField (Maybe.andThen String.toInt >> Age) Html.Form.input
+        |> Html.Form.withField EmailAddress (Html.Form.input |> Html.Form.withInitialValue (Just "john@pavlick.dev"))
+        |> Html.Form.withField Subscribe (Html.Form.checkbox |> Html.Form.withStopPropagation False)
+        |> Html.Form.build
+
+
+
+-- optionally, if you're really snapped, you can restructure your errors, too
+
+
+type alias Errors =
+    { name : Maybe { editor : Editor, errors : List Error }
+    , age : Maybe { editor : Editor, errors : List Error }
+    , emailAddress : Maybe { editor : Editor, errors : List Error }
+    , subscribe : Maybe { editor : Editor, errors : List Error }
+    }
+
+
+fromErrors : List { editor : Editor, errors : List Error } -> Errors
+fromErrors =
+    List.foldl
+        (\step acc ->
+            case step.editor of
+                Name _ ->
+                    { acc | name = Just step }
+
+                Age _ ->
+                    { acc | age = Just step }
+
+                EmailAddress _ ->
+                    { acc | emailAddress = Just step }
+
+                Subscribe _ ->
+                    { acc | subscribe = Just step }
+        )
+        { name = Nothing
+        , age = Nothing
+        , emailAddress = Nothing
+        , subscribe = Nothing
+        }

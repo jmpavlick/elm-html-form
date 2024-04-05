@@ -29,6 +29,7 @@ Oh, and none of this is using functions in the `Model`, or any black magic. At t
 
 More documentation to come soon, but here's a taste of the API - this is all copied from this repo's [`demo/src/Main.elm`](https://github.com/jmpavlick/elm-html-form/blob/master/demo/src/Main.elm) and [`demo/src/Signup.elm`](https://github.com/jmpavlick/elm-html-form/blob/master/demo/src/Signup.elm) modules.
 
+If you clone the repo, you can run the sample with `pnpm start`.
 
 ### Callsites for form fields
 

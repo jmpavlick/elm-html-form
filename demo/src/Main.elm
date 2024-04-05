@@ -24,7 +24,7 @@ type alias Model =
 
 type Msg
     = GotSignupMsg (Html.Form.Msg Signup.Editor)
-    | GotSignupOnSubmit Signup.Record
+    | GotSignupOnSubmit (Result (List Signup.Error) Signup.Record)
     | GotPropagatedEvent String
 
 

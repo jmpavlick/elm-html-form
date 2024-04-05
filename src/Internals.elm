@@ -68,11 +68,14 @@ type Msg editor
 
 
 update :
-    { onSubmit : record -> msg, toRecord : List editor -> Maybe record }
+    { errors : List error
+    , onSubmit : Result (List error) record -> msg
+    , toRecord : List editor -> Maybe record
+    }
     -> Msg editor
     -> Model editor
     -> ( Model editor, Cmd msg )
-update { onSubmit, toRecord } msg (Model model) =
+update { errors, onSubmit, toRecord } msg (Model model) =
     case msg of
         UserUpdatedField index editor ->
             ( Model { model | editors = Dict.insert index editor model.editors }
@@ -93,8 +96,14 @@ update { onSubmit, toRecord } msg (Model model) =
                         (always m)
                         (Task.succeed identity)
               in
-              Maybe.map
-                (onSubmit >> call)
-                (Dict.values model.editors |> toRecord)
-                |> Maybe.withDefault Cmd.none
+              if List.isEmpty errors then
+                Maybe.map
+                    (Ok >> onSubmit >> call)
+                    (toRecord <| Dict.values model.editors)
+                    |> Maybe.withDefault Cmd.none
+
+              else
+                Err errors
+                    |> onSubmit
+                    |> call
             )

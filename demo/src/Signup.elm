@@ -59,7 +59,7 @@ toRecord editors =
 
 
 form :
-    { toMsg : Html.Form.Msg Editor -> msg, onSubmit : Record -> msg }
+    { toMsg : Html.Form.Msg Editor -> msg, onSubmit : Result (List Error) Record -> msg }
     -> Html.Form.Module String Editor { model | signupForm : Html.Form.Model Editor } (Fieldset msg) msg
 form { toMsg, onSubmit } =
     Html.Form.init Fieldset

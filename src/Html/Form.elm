@@ -89,7 +89,7 @@ type Config error editor record fieldset model msg
         , fromModel : model -> Model editor
         , toMsg : Msg editor -> msg
         , toRecord : List editor -> Maybe record
-        , onSubmit : record -> msg
+        , onSubmit : Result (List error) record -> msg
         , index : Int
         , initModel : Model editor -> Model editor
         , fieldset : Fieldset model fieldset
@@ -105,7 +105,7 @@ init :
         , fromModel : model -> Model editor
         , toMsg : Msg editor -> msg
         , toRecord : List editor -> Maybe record
-        , onSubmit : record -> msg
+        , onSubmit : Result (List error) record -> msg
         }
     -> Config error editor record fieldset model msg
 init fieldset { toModel, fromModel, toMsg, toRecord, onSubmit } =
@@ -344,7 +344,8 @@ build (Config config) =
     , update =
         \msg model ->
             Internals.update
-                { onSubmit = config.onSubmit
+                { errors = config.errors model [] |> List.map .errors |> List.concat
+                , onSubmit = config.onSubmit
                 , toRecord = config.toRecord
                 }
                 msg

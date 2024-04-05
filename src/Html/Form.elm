@@ -1,9 +1,9 @@
 module Html.Form exposing
-    ( Module
-    , Config(..)
-    , init
-    , withField
+    ( init
+    , Module
     , build
+    , Config(..)
+    , withField
     , Model
     , Msg
     , Field
@@ -20,16 +20,37 @@ module Html.Form exposing
     , withPreventDefault
     )
 
-{-| Form
+{-| This package is, in essence, a state management library that happens to be tightly-scoped to the problem space of "forms in Elm".
 
 
 # Module instance
 
-@docs Module
-@docs Config
+This package uses a pattern that I've been referring to as ["the Module Pattern"](https://dev.to/jmpavlick/for-lack-of-a-better-name-im-calling-it-the-module-pattern-5dfi).
+To use it, you initialize it via `init` with its depenencies, then add fields with the `withField` function. When you've added all of your fields, you can apply the `build` function;
+its output will be a value of type `Module error editor model fieldset msg`.
+
+To summarize the article - the core conceit is that an instance of a `Module` can conceal its internal state while providing functions that allow other code to inter-operate with
+that state. Since the `Module` is constructed as a function from an instance of its own `Model` (proxied via a function `model -> Model`, parameterized into `init`), the functions
+that it creates can close over the state of the `model`.
+
+This lets us create references from some given state of the `Model`, and close over them as we define the functions - which is the mechanism for having a pre-defined relationship between
+the editing state of the fields on a form, and the functions used to update that state.
+
+A `Module` value is a record that exposes fields that contain functions that allow you to:
+
+  - Initialize the module's internal state
+  - Allow for the module's internal state to be attached to and synchronized to a "host" / parent
+  - Map the module's `update` motion and any commands that it sends to the runtime through to the host
+  - Expose functions that update the module's internal state
+  - Expose data from the module
+
+So that instead of exposing types and functions `view, update, init, Model, Msg` from a module, you expose its `Module`, `Msg`, and any functions needed to instantiate and configure the `Module` (such as `init`).
+
 @docs init
-@docs withField
+@docs Module
 @docs build
+@docs Config
+@docs withField
 @docs Model
 @docs Msg
 
@@ -72,32 +93,8 @@ import Json.Decode
 -- Module instance
 
 
-{-| -}
-type alias Module error editor model fieldset msg =
-    { init : ( Model editor -> model, Cmd msg ) -> ( model, Cmd msg )
-    , submitMsg : msg
-    , update : Msg editor -> model -> ( model, Cmd msg )
-    , fieldset : model -> fieldset
-    , errors : model -> List { editor : editor, errors : List error }
-    }
-
-
-{-| -}
-type Config error editor record fieldset model msg
-    = Config
-        { toModel : model -> Model editor -> model
-        , fromModel : model -> Model editor
-        , toMsg : Msg editor -> msg
-        , toRecord : List editor -> Maybe record
-        , onSubmit : Result (List error) record -> msg
-        , index : Int
-        , initModel : Model editor -> Model editor
-        , fieldset : Fieldset model fieldset
-        , errors : model -> (List { editor : editor, errors : List error } -> List { editor : editor, errors : List error })
-        }
-
-
-{-| -}
+{-| Module initialization.
+-}
 init :
     fieldset
     ->
@@ -119,6 +116,65 @@ init fieldset { toModel, fromModel, toMsg, toRecord, onSubmit } =
         , onSubmit = onSubmit
         , fieldset = Fieldset (always fieldset)
         , errors = always identity
+        }
+
+
+{-| -}
+type alias Module error editor model fieldset msg =
+    { init : ( Model editor -> model, Cmd msg ) -> ( model, Cmd msg )
+    , submitMsg : msg
+    , update : Msg editor -> model -> ( model, Cmd msg )
+    , fieldset : model -> fieldset
+    , errors : model -> List { editor : editor, errors : List error }
+    }
+
+
+{-| -}
+build : Config error editor record fieldset model msg -> Module error editor model fieldset msg
+build (Config config) =
+    { init =
+        \( toModel, cmdMsg ) ->
+            ( toModel <|
+                config.initModel <|
+                    Internals.Model
+                        { editors = Dict.empty
+                        , focusEvents = []
+                        }
+            , cmdMsg
+            )
+    , submitMsg = config.toMsg Internals.UserClickedSubmit
+    , update =
+        \msg model ->
+            Internals.update
+                { errors = config.errors model [] |> List.map .errors |> List.concat
+                , onSubmit = config.onSubmit
+                , toRecord = config.toRecord
+                }
+                msg
+                (config.fromModel model)
+                |> Tuple.mapFirst
+                    (config.toModel model)
+    , fieldset =
+        \model ->
+            (\(Fieldset fs) -> fs model) config.fieldset
+    , errors =
+        \model ->
+            config.errors model []
+    }
+
+
+{-| -}
+type Config error editor record fieldset model msg
+    = Config
+        { toModel : model -> Model editor -> model
+        , fromModel : model -> Model editor
+        , toMsg : Msg editor -> msg
+        , toRecord : List editor -> Maybe record
+        , onSubmit : Result (List error) record -> msg
+        , index : Int
+        , initModel : Model editor -> Model editor
+        , fieldset : Fieldset model fieldset
+        , errors : model -> (List { editor : editor, errors : List error } -> List { editor : editor, errors : List error })
         }
 
 
@@ -343,40 +399,6 @@ withField wrap (Internals.FieldConfig fieldConfig) (Config config) =
                        )
                     |> config.errors model
         }
-
-
-{-| -}
-build : Config error editor record fieldset model msg -> Module error editor model fieldset msg
-build (Config config) =
-    { init =
-        \( toModel, cmdMsg ) ->
-            ( toModel <|
-                config.initModel <|
-                    Internals.Model
-                        { editors = Dict.empty
-                        , focusEvents = []
-                        }
-            , cmdMsg
-            )
-    , submitMsg = config.toMsg Internals.UserClickedSubmit
-    , update =
-        \msg model ->
-            Internals.update
-                { errors = config.errors model [] |> List.map .errors |> List.concat
-                , onSubmit = config.onSubmit
-                , toRecord = config.toRecord
-                }
-                msg
-                (config.fromModel model)
-                |> Tuple.mapFirst
-                    (config.toModel model)
-    , fieldset =
-        \model ->
-            (\(Fieldset fs) -> fs model) config.fieldset
-    , errors =
-        \model ->
-            config.errors model []
-    }
 
 
 {-| -}

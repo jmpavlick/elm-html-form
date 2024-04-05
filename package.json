@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "vite --host",
-    "preview": "elm-doc-preview",
+    "preview": "elm-doc-preview -p 7999",
     "review": "elm-review --fix-all",
     "review:watch": "elm-review --watch --fix-all"
   },

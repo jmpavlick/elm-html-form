@@ -1,4 +1,63 @@
-module Html.Form exposing (Config(..), Element, Field, FieldConfig, Fieldset(..), Model, Module, Msg, Validation, build, checkbox, init, input, withField, withInitialValue, withStopPropagation, withValidation)
+module Html.Form exposing
+    ( Module
+    , Config(..)
+    , init
+    , withField
+    , build
+    , Model
+    , Msg
+    , Field
+    , FieldConfig
+    , Fieldset(..)
+    , Element
+    , input
+    , checkbox
+    , custom
+    , withInitialValue
+    , Validation
+    , withValidation
+    , withStopPropagation
+    , withPreventDefault
+    )
+
+{-| Form
+
+
+# Module instance
+
+@docs Module
+@docs Config
+@docs init
+@docs withField
+@docs build
+@docs Model
+@docs Msg
+
+
+# Field configuration
+
+@docs Field
+@docs FieldConfig
+@docs Fieldset
+@docs Element
+
+
+# Fields
+
+@docs input
+@docs checkbox
+@docs custom
+
+
+# Field builders
+
+@docs withInitialValue
+@docs Validation
+@docs withValidation
+@docs withStopPropagation
+@docs withPreventDefault
+
+-}
 
 import Dict
 import Html
@@ -9,18 +68,11 @@ import Internals
 import Json.Decode
 
 
-type alias Model editor =
-    Internals.Model editor
+
+-- Module instance
 
 
-type alias Msg editor =
-    Internals.Msg editor
-
-
-
--- module
-
-
+{-| -}
 type alias Module error editor model fieldset msg =
     { init : ( Model editor -> model, Cmd msg ) -> ( model, Cmd msg )
     , submitMsg : msg
@@ -30,6 +82,7 @@ type alias Module error editor model fieldset msg =
     }
 
 
+{-| -}
 type Config error editor record fieldset model msg
     = Config
         { toModel : model -> Model editor -> model
@@ -44,6 +97,7 @@ type Config error editor record fieldset model msg
         }
 
 
+{-| -}
 init :
     fieldset
     ->
@@ -68,67 +122,7 @@ init fieldset { toModel, fromModel, toMsg, toRecord, onSubmit } =
         }
 
 
-build : Config error editor record fieldset model msg -> Module error editor model fieldset msg
-build (Config config) =
-    { init =
-        \( toModel, cmdMsg ) ->
-            ( toModel <|
-                config.initModel <|
-                    Internals.Model
-                        { editors = Dict.empty
-                        , focusEvents = []
-                        }
-            , cmdMsg
-            )
-    , submitMsg = config.toMsg Internals.UserClickedSubmit
-    , update =
-        \msg model ->
-            Internals.update
-                { onSubmit = config.onSubmit
-                , toRecord = config.toRecord
-                }
-                msg
-                (config.fromModel model)
-                |> Tuple.mapFirst
-                    (config.toModel model)
-    , fieldset =
-        \model ->
-            (\(Fieldset fs) -> fs model) config.fieldset
-    , errors =
-        \model ->
-            config.errors model []
-    }
-
-
-type Fieldset model fieldset
-    = Fieldset (model -> fieldset)
-
-
-
--- fields
-
-
-type alias Field error msg =
-    { element : List (Html.Attribute msg) -> Html.Html msg
-    , errors : List error
-    , toAttrs : List (Html.Attribute msg) -> List (Html.Attribute msg)
-    , attrs :
-        { onFocus : Html.Attribute msg
-        , onBlur : Html.Attribute msg
-        , onEvent : Html.Attribute msg
-        , value : Html.Attribute msg
-        }
-    }
-
-
-type alias Element msg =
-    Internals.Element msg
-
-
-type alias FieldConfig error value editor msg =
-    Internals.FieldConfig error value editor msg
-
-
+{-| -}
 withField :
     (Maybe value -> editor)
     -> FieldConfig error value editor msg
@@ -328,10 +322,127 @@ withField wrap (Internals.FieldConfig fieldConfig) (Config config) =
         }
 
 
+{-| -}
+build : Config error editor record fieldset model msg -> Module error editor model fieldset msg
+build (Config config) =
+    { init =
+        \( toModel, cmdMsg ) ->
+            ( toModel <|
+                config.initModel <|
+                    Internals.Model
+                        { editors = Dict.empty
+                        , focusEvents = []
+                        }
+            , cmdMsg
+            )
+    , submitMsg = config.toMsg Internals.UserClickedSubmit
+    , update =
+        \msg model ->
+            Internals.update
+                { onSubmit = config.onSubmit
+                , toRecord = config.toRecord
+                }
+                msg
+                (config.fromModel model)
+                |> Tuple.mapFirst
+                    (config.toModel model)
+    , fieldset =
+        \model ->
+            (\(Fieldset fs) -> fs model) config.fieldset
+    , errors =
+        \model ->
+            config.errors model []
+    }
 
--- inputs
+
+{-| -}
+type alias Model editor =
+    Internals.Model editor
 
 
+{-| -}
+type alias Msg editor =
+    Internals.Msg editor
+
+
+
+-- Field configuration
+
+
+{-| -}
+type alias Field error msg =
+    { element : List (Html.Attribute msg) -> Html.Html msg
+    , errors : List error
+    , toAttrs : List (Html.Attribute msg) -> List (Html.Attribute msg)
+    , attrs :
+        { onFocus : Html.Attribute msg
+        , onBlur : Html.Attribute msg
+        , onEvent : Html.Attribute msg
+        , value : Html.Attribute msg
+        }
+    }
+
+
+{-| -}
+type alias FieldConfig error value editor msg =
+    Internals.FieldConfig error value editor msg
+
+
+{-| -}
+type Fieldset model fieldset
+    = Fieldset (model -> fieldset)
+
+
+{-| -}
+type alias Element msg =
+    Internals.Element msg
+
+
+
+-- Fields
+
+
+{-| -}
+input : FieldConfig error String editor msg
+input =
+    custom
+        { eventName = "input"
+        , decoder = Html.Events.targetValue
+        , element = Html.input
+        , valueAttr =
+            \{ wrap, initialValue } ->
+                \editor ->
+                    if wrap initialValue == editor then
+                        Maybe.map Html.Attributes.value initialValue
+                            |> Maybe.withDefault (Html.Attributes.class "")
+
+                    else
+                        Html.Attributes.class ""
+        }
+
+
+{-| -}
+checkbox : FieldConfig error Bool editor msg
+checkbox =
+    custom
+        { eventName = "input"
+        , decoder = Html.Events.targetChecked
+        , element =
+            \attrs elems ->
+                Html.input (Html.Attributes.type_ "checkbox" :: attrs) elems
+        , valueAttr =
+            \{ wrap } ->
+                \editor ->
+                    if editor == wrap (Just True) then
+                        Html.Attributes.checked True
+
+                    else
+                        Html.Attributes.class ""
+        }
+        |> withInitialValue (Just False)
+
+
+{-| -}
 custom :
     { eventName : String
     , decoder : Json.Decode.Decoder value
@@ -354,68 +465,35 @@ custom { eventName, decoder, element, valueAttr } =
         }
 
 
-input : FieldConfig error String editor msg
-input =
-    custom
-        { eventName = "input"
-        , decoder = Html.Events.targetValue
-        , element = Html.input
-        , valueAttr =
-            \{ wrap, initialValue } ->
-                \editor ->
-                    if wrap initialValue == editor then
-                        Maybe.map Html.Attributes.value initialValue
-                            |> Maybe.withDefault (Html.Attributes.class "")
 
-                    else
-                        Html.Attributes.class ""
-        }
+-- Field builders
 
 
-checkbox : FieldConfig error Bool editor msg
-checkbox =
-    custom
-        { eventName = "input"
-        , decoder = Html.Events.targetChecked
-        , element =
-            \attrs elems ->
-                Html.input (Html.Attributes.type_ "checkbox" :: attrs) elems
-        , valueAttr =
-            \{ wrap } ->
-                \editor ->
-                    if editor == wrap (Just True) then
-                        Html.Attributes.checked True
-
-                    else
-                        Html.Attributes.class ""
-        }
-        |> withInitialValue (Just False)
-
-
-
--- field builders
-
-
+{-| -}
 withInitialValue : Maybe value -> FieldConfig error value editor msg -> FieldConfig error value editor msg
 withInitialValue value (Internals.FieldConfig field) =
     Internals.FieldConfig
         { field | initialValue = value }
 
 
+{-| -}
 withStopPropagation : Bool -> FieldConfig error value editor msg -> FieldConfig error value editor msg
 withStopPropagation value (Internals.FieldConfig field) =
     Internals.FieldConfig { field | stopPropagation = value }
 
 
+{-| -}
 withPreventDefault : Bool -> FieldConfig error value editor msg -> FieldConfig error value editor msg
 withPreventDefault value (Internals.FieldConfig field) =
     Internals.FieldConfig { field | preventDefault = value }
 
 
+{-| -}
 type alias Validation error value editor =
-    Html.Form.Validation.Validation error value editor
+    Internals.Validation error value editor
 
 
+{-| -}
 withValidation : Validation error value editor -> FieldConfig error value editor msg -> FieldConfig error value editor msg
 withValidation value (Internals.FieldConfig field) =
     Internals.FieldConfig { field | validations = value :: field.validations }

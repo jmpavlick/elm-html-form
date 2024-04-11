@@ -94,6 +94,9 @@ import Json.Decode
 
 
 {-| Module initialization.
+
+This function creates a value of type `Config error editor record fieldset model msg`. The `Config` defines your form's fields and
+behaviors.
 -}
 init :
     fieldset

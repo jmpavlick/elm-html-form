@@ -97,6 +97,16 @@ import Json.Decode
 
 This function creates a value of type `Config error editor record fieldset model msg`. The `Config` defines your form's fields and
 behaviors.
+
+`Config`'s type parameters are satisfied as follows:
+
+- `error`: The type that you will use to represent errors or invalid states within a form. You can use any type; `String` is a good place to start - you can use a different type if you need to.
+- `editor`: The type whose constructors represent editing state for a single given field on your form. For instance, a "signup" form containing fields for a username, an email address, and a user's age could be written as follows:
+    type Editor
+        = Name (Maybe String)
+        | Email (Maybe String)
+        | Age (Maybe Int)
+- `record`: 
 -}
 init :
     fieldset

@@ -1,8 +1,10 @@
-module Signup exposing (Editor(..), Error, Errors, Fieldset, Record, form, fromErrors)
+module Signup exposing (Editor(..), Error, Errors, Fieldset, Record, TrafficLight, form, fromErrors, trafficLightDecoder, trafficLightValues)
 
 import Html
 import Html.Form
 import Html.Form.Validation
+import Json.Decode
+import Json.Encode
 
 
 type Editor
@@ -10,6 +12,7 @@ type Editor
     | Age (Maybe Int)
     | EmailAddress (Maybe String)
     | Subscribe (Maybe Bool)
+    | TrafficLight (Maybe TrafficLight)
 
 
 type alias Record =
@@ -17,6 +20,7 @@ type alias Record =
     , age : Int
     , emailAddress : String
     , subscribe : Bool
+    , trafficLight : TrafficLight
     }
 
 
@@ -29,6 +33,7 @@ type alias Fieldset msg =
     , age : Html.Form.Field Error msg
     , emailAddress : Html.Form.Field Error msg
     , subscribe : Html.Form.Field Error msg
+    , trafficLight : Html.Form.Field Error msg
     }
 
 
@@ -48,14 +53,66 @@ toRecord editors =
 
                 Subscribe subscribe ->
                     { acc | subscribe = subscribe }
+
+                TrafficLight trafficLight ->
+                    { acc | trafficLight = trafficLight }
         )
         { name = Nothing
         , age = Nothing
         , emailAddress = Nothing
         , subscribe = Nothing
+        , trafficLight = Nothing
         }
         editors
-        |> (\e -> Maybe.map4 Record e.name e.age e.emailAddress e.subscribe)
+        |> (\e -> Maybe.map5 Record e.name e.age e.emailAddress e.subscribe e.trafficLight)
+
+
+type TrafficLight
+    = Red
+    | Yellow
+    | Green
+
+
+trafficLightValues : List TrafficLight
+trafficLightValues =
+    [ Red
+    , Yellow
+    , Green
+    ]
+
+
+trafficLightDecoder : Json.Decode.Decoder TrafficLight
+trafficLightDecoder =
+    Json.Decode.andThen
+        (\str ->
+            case Debug.log "trafficLightDecoder" str of
+                "red" ->
+                    Json.Decode.succeed Red
+
+                "yellow" ->
+                    Json.Decode.succeed Yellow
+
+                "green" ->
+                    Json.Decode.succeed Green
+
+                _ ->
+                    Json.Decode.fail <| str ++ " is not a valid value for TrafficLight"
+        )
+        Json.Decode.string
+
+
+trafficLightEncoder : TrafficLight -> Json.Encode.Value
+trafficLightEncoder value =
+    Json.Encode.string <|
+        case value of
+            Red ->
+                "red"
+
+            Yellow ->
+                "yellow"
+
+            Green ->
+                "green"
 
 
 form :
@@ -116,6 +173,17 @@ form { toMsg, onSubmit } =
                     )
             )
         |> Html.Form.withField Subscribe (Html.Form.checkbox |> Html.Form.withStopPropagation False)
+        |> Html.Form.withField TrafficLight
+            (Html.Form.dropdown
+                { decoder = trafficLightDecoder
+                , encoder = trafficLightEncoder
+                , toOption =
+                    { label = Debug.toString >> Html.text
+                    , element = Html.option
+                    }
+                }
+                trafficLightValues
+            )
         |> Html.Form.build
 
 
@@ -128,6 +196,7 @@ type alias Errors =
     , age : Maybe { editor : Editor, errors : List Error }
     , emailAddress : Maybe { editor : Editor, errors : List Error }
     , subscribe : Maybe { editor : Editor, errors : List Error }
+    , trafficLight : Maybe { editor : Editor, errors : List Error }
     }
 
 
@@ -147,9 +216,13 @@ fromErrors =
 
                 Subscribe _ ->
                     { acc | subscribe = Just step }
+
+                TrafficLight _ ->
+                    { acc | trafficLight = Just step }
         )
         { name = Nothing
         , age = Nothing
         , emailAddress = Nothing
         , subscribe = Nothing
+        , trafficLight = Nothing
         }

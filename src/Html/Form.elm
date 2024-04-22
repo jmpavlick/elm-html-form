@@ -18,6 +18,7 @@ module Html.Form exposing
     , withValidation
     , withStopPropagation
     , withPreventDefault
+    , dropdown
     )
 
 {-| Form
@@ -66,6 +67,7 @@ import Html.Events
 import Html.Form.Validation
 import Internals
 import Json.Decode
+import Json.Encode
 
 
 
@@ -464,6 +466,52 @@ checkbox =
                         Html.Attributes.class ""
         }
         |> withInitialValue (Just False)
+
+
+dropdown :
+    { decoder : Json.Decode.Decoder value
+    , encoder : value -> Json.Encode.Value
+    , toOption :
+        { label : value -> Html.Html msg
+        , element : Element msg
+        }
+    }
+    -> List value
+    -> FieldConfig error value editor msg
+dropdown { decoder, encoder, toOption } values =
+    custom
+        { eventName = "change"
+        , decoder = decoder
+        , element =
+            \attrs elems ->
+                Html.select attrs <|
+                    let
+                        options : List (Html.Html msg)
+                        options =
+                            List.map
+                                (\v ->
+                                    toOption.element
+                                        [ Html.Attributes.value <| Json.Encode.encode 0 <| encoder v ]
+                                        [ toOption.label v ]
+                                )
+                                values
+                    in
+                    options
+        , valueAttr =
+            \{ wrap } ->
+                \editor ->
+                    List.filterMap
+                        (\v ->
+                            if editor == wrap (Just v) then
+                                Just <| Html.Attributes.value <| Json.Encode.encode 0 <| encoder v
+
+                            else
+                                Nothing
+                        )
+                        values
+                        |> List.head
+                        |> Maybe.withDefault (Html.Attributes.class "")
+        }
 
 
 {-| -}

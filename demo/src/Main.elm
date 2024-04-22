@@ -113,6 +113,7 @@ view model =
                 , Html.input (fieldset.age.toAttrs [ margin 12 ]) [] |> withLabel "Age"
                 , withErrors fieldset.emailAddress [ margin 12 ] |> withLabel "Email Address"
                 , fieldset.subscribe.element [ Html.Attributes.style "margin" "4px" ] |> withLabel "Subscribe"
+                , fieldset.trafficLight.element [ Html.Attributes.style "margin" "4px" ] |> withLabel "Traffic Light"
                 ]
             , Html.button [ Html.Events.onClick signupModule.submitMsg ] [ Html.text "Submit" ]
             , Html.hr [] []

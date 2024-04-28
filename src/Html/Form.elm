@@ -20,7 +20,23 @@ module Html.Form exposing
     , withPreventDefault
     )
 
-{-| This package is, in essence, a state management library that happens to be tightly-scoped to the problem space of "forms in Elm".
+{-|
+
+
+# Overview
+
+This package is, in essence, a state management library that happens to be tightly-scoped to the problem space of "forms in Elm".
+
+Forms in Elm are hard! Forms are hard, regardless of which language they're implemented in; but they're particularly hard in Elm, because all state in an Elm application has to be stored in the `Model` type that's registered in the `main` function - so even if a value can be considered "throwaway" (i.e., unparsed / unvalidated user input), it has to be persisted _somewhere_; and as such, it must become a part of the application's domain. Any state changes require careful handling and trips through the runtime.
+
+Since "trips through the runtime" are only possible in the `update` function, this means that the majority of the code that defines the behavior of a given part of an application gets shoved into a branch on `update`, which means that it can become difficult to generalize over behavior for a given form input without also making it a full-blown "nested TEA" implementation, which requires storing and accessing a "sub-`model`" value. And having all of your application's behavior shoved into `update` creates distance between the the definition of a behavior, and the location of the code that's dependent on and / or providing an user interface for that behavior.
+
+In short, it can be remarkably difficult to create generic, reusable forms in an Elm application that that aren't directly dependent on both state and IO.
+
+This package provides better ergonomics for handling this complexity. Here's how it works, at 30,000 feet (9,144 metres):
+
+  - You create a "module instace" of a `Html.Form` by parameterizing it with a rudimentary "lens" that defines accessing the form's persistence from a host `Model` type, and a map that turns messages from a form into messages on the "ohst page"
+  - TODO: continue
 
 
 # Module instance
@@ -84,7 +100,6 @@ import Dict
 import Html
 import Html.Attributes
 import Html.Events
-import Html.Form.Validation
 import Internals
 import Json.Decode
 
@@ -100,13 +115,14 @@ behaviors.
 
 `Config`'s type parameters are satisfied as follows:
 
-- `error`: The type that you will use to represent errors or invalid states within a form. You can use any type; `String` is a good place to start - you can use a different type if you need to.
-- `editor`: The type whose constructors represent editing state for a single given field on your form. For instance, a "signup" form containing fields for a username, an email address, and a user's age could be written as follows:
+  - `error`: The type that you will use to represent errors or invalid states within a form. You can use any type; `String` is a good place to start - you can use a different type if you need to.
+  - `editor`: The type whose constructors represent editing state for a single given field on your form. For instance, a "signup" form containing fields for a username, an email address, and a user's age could be written as follows:
     type Editor
-        = Name (Maybe String)
-        | Email (Maybe String)
-        | Age (Maybe Int)
-- `record`: 
+    = Name (Maybe String)
+    | Email (Maybe String)
+    | Age (Maybe Int)
+  - `record`:
+
 -}
 init :
     fieldset

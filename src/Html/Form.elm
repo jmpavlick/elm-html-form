@@ -35,8 +35,14 @@ In short, it can be remarkably difficult to create generic, reusable forms in an
 
 This package provides better ergonomics for handling this complexity. Here's how it works, at 30,000 feet (9,144 metres):
 
-  - You create a "module instace" of a `Html.Form` by parameterizing it with a rudimentary "lens" that defines accessing the form's persistence from a host `Model` type, and a map that turns messages from a form into messages on the "ohst page"
-  - TODO: continue
+  - You create a "module instace" of a `Html.Form` by parameterizing it with a rudimentary "lens" that defines accessing the form's persistence from a host `Model` type, and a map that turns messages from a form into messages on the "host page"
+  - You provide a `fieldset` record type alias that enumerates the fields on your output form, with each record property typed as a `Html.Form.Field Error msg`
+  - You provide an `error` type that you can use to describe possible error states for your form
+  - You provide an `editor` type that represents an editing state for your form and describes its fields, and a `record` type that represents the final, validated output of your form
+
+The output is a record of type `Html.Form.Field error msg`, in the shape of your `fieldset` type parameter, where each property is a record with properties for a given field's HTML element, its errors, its attributes, and a record with a named prop for each attribute (`onFocus`, `onBlur`, `onEvent`, and `value`).
+
+For all of this setup, you get named properties that represent form inputs and errors, without having to try to "tie" a given input element or its errors to a field in the `Model`.
 
 
 # Module instance

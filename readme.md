@@ -35,7 +35,7 @@ If you clone the repo, you can run the sample with `pnpm start`.
 
 Forgive this; I'm not very good at HTML. But at least you can get an idea of what your callsites could look like! (I'm going to clean this up later.)
 
-```
+```elm
 view : Model -> Html Msg
 view model =
     let
@@ -106,7 +106,7 @@ view model =
 ### Form creation
 This is how you initialize a `Html.Form.Module`.
 
-```
+```elm
 import Html
 import Html.Form
 import Html.Form.Validation
